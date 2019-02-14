@@ -15,9 +15,9 @@ This library is just a different take on that concept. I just wanted to explore 
 
 ### Project Goals:
 
-This is, in part, a personal project to help me understand DOM manipulation frameworks on a much deeper level. For now, it is not intended for production, but I intend to improve this library over time. Eventually I would like this to turn into a stable and reliable framework.
+This started as a personal project to improve my understanding of DOM manipulation frameworks. For now, it is FAR from production-ready, but I intend to improve this library over time. Eventually I would like to turn this into a stable and reliable framework, and build quality web apps with it.
 
-While this framework is currently working on a basic level, there are still plenty of known and unknown bugs. Contributions are welcomed for code improvements, documentation, bug reports/fixes, testing, and feature requests. Just let me know.
+There are still plenty of known and unknown bugs. Contributions are welcomed for code improvements, documentation, bug reports/fixes, testing, and feature requests. Just let me know.
 
 Documentation is still pending as of February 14, 2019. Will be updated soon with a basic API guide.
 
