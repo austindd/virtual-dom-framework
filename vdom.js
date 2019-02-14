@@ -14,13 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let VDOM = function () {
             this.$rootNode = $rootNode;
         }
-
-        VDOM.prototype.currentVirtualDOM = undefined;
-
-        // =============================================================================================
-        // =====================================  Utility Methods  =====================================
-        // =============================================================================================
-
+        VDOM.prototype.currentVirtualDOM = undefined; // To be defined after first application update
 
         // ==============================================================================================
         // =================================  DOM Manipulation Methods  =================================
@@ -55,7 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             } else if (propName === 'events') {
                 Object.keys(value).forEach((eventName) => {
-                    console.log('Event Name', eventName);
                     let callback = value[eventName];
                     $target.addEventListener(eventName, callback);
                 });
@@ -461,9 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         },
         render: function () {
-
             if (this.parentProps.textValue) {
-                console.log(true);
                 this.textValue = this.parentProps.textValue;
             }
             return (
@@ -472,42 +463,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 ])
             )
         }
-    }) 
-
-    // Simple stateless functional component, capable of recieving props from its parent,
-    // Note: this is not an instance of VDOMComponent class.
-    // It's similar to vNodeFunction but passes props and defines additional methods.
-    const simpleComponent = (props) => {
-        this.props = props;
-        handleTextClick = () => {
-            console.log('CLICKED');
-            return;
-        }
-        return (
-            v$('div', { id: 'wrapper-div-1', style: { width: '50vh', margin: '0 auto', backgroundColor: 'lightgreen' } }, [
-                v$('p', { style: { textAlign: 'center' }, events: { click: handleTextClick.bind(this) } }, ['This is a stateless component']),
-                v$('p', { style: { textAlign: 'center', color: 'darkblue' }, events: { click: handleTextClick.bind(this) } }, ['It is designed to accept properties from its parent component']),
-                v$('p', { style: { textAlign: 'center' }, events: { click: handleTextClick.bind(this) } }, ['It returns a "virtual node"']),
-            ])
-        );
-    };
-
-    // Simple function returning a compatible vNode object:
-    const vNodeFunction = () => {
-        return (
-            v$('div', { id: 'wrapper-div-1', style: { width: '50vh', margin: '0 auto', backgroundColor: 'yellow' } }, [
-                v$('p', { style: { textAlign: "center", color: "red" } }, ['This is just a function that returns a set of nested virtual nodes']),
-                v$('p', { style: { textAlign: "center" } }, ['This is a <p> element with text']),
-                v$('p', { style: { textAlign: "center" } }, ['And ANOTHER one!']),
-            ])
-        );
-    }
-
+    });
 
 
     // ===============================================================================================
     // ===============================================================================================
-    // ==================================  APPLICATION ENTRY POINT  ==================================
+    // =================================   APPLICATION ENTRY POINT   =================================
     // ===============================================================================================
     // ===============================================================================================
 
@@ -526,6 +487,48 @@ document.addEventListener("DOMContentLoaded", () => {
     VDOM.setRootComponent(MyApplication);
     MyApplication.update();
 
+
+
+
+
+
+
+
+    
+
+    // ===============================================================================================
+    // =====================================  UNUSED COMPONENTS  =====================================
+    // ===============================================================================================
+
+
+    // // Simple stateless functional component, capable of recieving props from its parent,
+    // // Note: this is not an instance of VDOMComponent class.
+    // // It's similar to vNodeFunction but passes props and defines additional methods.
+    // const simpleComponent = (props) => {
+    //     this.props = props;
+    //     handleTextClick = () => {
+    //         console.log('CLICKED');
+    //         return;
+    //     }
+    //     return (
+    //         v$('div', { id: 'wrapper-div-1', style: { width: '50vh', margin: '0 auto', backgroundColor: 'lightgreen' } }, [
+    //             v$('p', { style: { textAlign: 'center' }, events: { click: handleTextClick.bind(this) } }, ['This is a stateless component']),
+    //             v$('p', { style: { textAlign: 'center', color: 'darkblue' }, events: { click: handleTextClick.bind(this) } }, ['It is designed to accept properties from its parent component']),
+    //             v$('p', { style: { textAlign: 'center' }, events: { click: handleTextClick.bind(this) } }, ['It returns a "virtual node"']),
+    //         ])
+    //     );
+    // };
+
+    // // Simple function returning a compatible vNode object:
+    // const vNodeFunction = () => {
+    //     return (
+    //         v$('div', { id: 'wrapper-div-1', style: { width: '50vh', margin: '0 auto', backgroundColor: 'yellow' } }, [
+    //             v$('p', { style: { textAlign: "center", color: "red" } }, ['This is just a function that returns a set of nested virtual nodes']),
+    //             v$('p', { style: { textAlign: "center" } }, ['This is a <p> element with text']),
+    //             v$('p', { style: { textAlign: "center" } }, ['And ANOTHER one!']),
+    //         ])
+    //     );
+    // }
 
 });
 

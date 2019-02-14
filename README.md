@@ -1,11 +1,11 @@
 # Virtual DOM Framework Pattern in Vanilla JavaScript
-## Reverse-Engineering Features of ReactJS
+### Reverse-Engineering Features of ReactJS
+
+[Take a look at the code](https://github.com/austinddavis/virtual-dom-framework/blob/master/vdom.js)
 
 ### About:
 
 This JavaScript library provides an opinionated DOM manipulation framework based loosely on ReactJS.
-
-Take a look at the code!
 
 At its core is an algorithm that constructs a virtual representation of a desired DOM tree, a "virtual DOM," and compares it against a previous version of itself, and updates the real DOM based on their differences. This should be a familiar concept for those who have used front-end JS frameworks.
 
