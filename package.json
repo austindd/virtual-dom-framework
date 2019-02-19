@@ -1,0 +1,32 @@
+{
+  "name": "simple-vdom",
+  "version": "1.0.0",
+  "description": "An open-source library for implementing a simple virtual DOM framework",
+  "main": "vdom.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/austinddavis/virtual-dom-framework.git"
+  },
+  "keywords": [
+    "virtual",
+    "dom",
+    "virtual",
+    "dom",
+    "javascript",
+    "front-end",
+    "component",
+    "framework"
+  ],
+  "author": "Austin Davis",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/austinddavis/virtual-dom-framework/issues"
+  },
+  "homepage": "https://github.com/austinddavis/virtual-dom-framework#readme",
+  "dependencies": {
+    "requirejs": "^2.3.6"
+  }
+}

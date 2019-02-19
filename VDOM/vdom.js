@@ -266,6 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log('New State:', this.state);
             }
         }
+        // createClass is a factory function that creates and returns another factory function. 
         const createClass = function (classProps = {}) {
             let ComponentClass = function (parentProps = {}) {
                 let mergedProps = Object.assign({}, classProps, {parentProps: parentProps});
@@ -424,7 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
             )
         }
     });
-
 
 
     const ContentCol = createClass({
