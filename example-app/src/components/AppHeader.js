@@ -1,7 +1,7 @@
 define(['vdom'], function (VDOM) {
     const v$ = VDOM.v$;
 
-    const AppHeader = new VDOM.VDOMComponent({
+    const AppHeader = new VDOM.createClass({
         styles: {
             appHeader: {
                 position: 'relative',

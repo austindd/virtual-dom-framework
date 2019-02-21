@@ -15,8 +15,8 @@ define(['vdom', 'components/AppHeader', 'components/AppBody'], ({VDOMComponent, 
         render: function () {
             return (
                 v$('div', { id: 'App', style: this.styles.main }, [
-                    AppHeader,
-                    AppBody,
+                    AppHeader(),
+                    AppBody(),
                 ])
             );
         }

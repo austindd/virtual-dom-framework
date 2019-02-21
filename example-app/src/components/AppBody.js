@@ -1,7 +1,7 @@
 define(['vdom', 'components/ContentCol'], (VDOM, ContentCol) => {
     const v$ = VDOM.v$;
 
-    const AppBody = new VDOM.VDOMComponent({
+    const AppBody = VDOM.createClass({
         styles: {
             appBody: {
                 display: 'flex',
@@ -65,6 +65,7 @@ define(['vdom', 'components/ContentCol'], (VDOM, ContentCol) => {
             )
         }
     });
+    console.log(AppBody);
     return AppBody;
 });
 

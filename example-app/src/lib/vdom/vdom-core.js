@@ -1,8 +1,6 @@
 console.log('VDOM Library Loaded');
 
 
-
-
 const createVDOM = (rootNode) => {
     let $rootNode;
     if (typeof rootNode === 'string') {
@@ -270,8 +268,11 @@ const createVDOM = (rootNode) => {
     const createClass = function (classProps = {}) {
         let ComponentClass = function (parentProps = {}) {
             let mergedProps = Object.assign({}, classProps, { parentProps: parentProps });
-            let componentInstance = new VDOMComponent(mergedProps);
-            return componentInstance;
+            // let componentInstance = new VDOMComponent(mergedProps);
+            // return componentInstance;
+
+            return new VDOMComponent(mergedProps);
+
         }
         return ComponentClass;
     }
