@@ -5,9 +5,11 @@ const webpack = require('webpack');
 
 module.exports = {
     mode: 'development',
-    entry: {
-        app: './src/index.js',
-    },
+    entry: [
+        './src/index.js',
+        'webpack/hot/dev-server',
+        'webpack-dev-server/client?http://localhost:8080/'
+    ],
     devtool: 'inline-source-map',
     devServer: {
         contentBase: './dist',

@@ -1,1 +1,6 @@
-console.log('inside print.js');
+
+export default function printMe () {
+    console.log('Very cool');
+    return true;
+}
+

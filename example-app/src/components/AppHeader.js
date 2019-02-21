@@ -1,7 +1,7 @@
-define(['vdom'], function (VDOM) {
-    const v$ = VDOM.v$;
+import {VDOM, v$} from '../lib/vdom/vdom';
 
-    const AppHeader = new VDOM.createClass({
+
+    const AppHeader = VDOM.createClass({
         styles: {
             appHeader: {
                 position: 'relative',
@@ -31,6 +31,4 @@ define(['vdom'], function (VDOM) {
             );
         }
     });
-    return AppHeader;
-});
-
+export default AppHeader;

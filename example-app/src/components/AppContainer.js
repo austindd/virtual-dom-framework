@@ -1,26 +1,28 @@
-define(['vdom', 'components/AppHeader', 'components/AppBody'], ({VDOMComponent, v$}, AppHeader, AppBody) => {
+import {VDOM} from '../lib/vdom/vdom';
+import AppHeader from './AppHeader';
+import AppBody from './AppBody';
 
-    const AppContainer = new VDOMComponent({
-        styles: {
-            main: {
-                margin: '0 auto',
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'f6f6ff',
-            }
-        },
-        handleTextClick: function () {
-            console.log('CLICKED');
-        },
-        render: function () {
-            return (
-                v$('div', { id: 'App', style: this.styles.main }, [
-                    AppHeader(),
-                    AppBody(),
-                ])
-            );
+
+const AppContainer = VDOM.createClass({
+    styles: {
+        main: {
+            margin: '0 auto',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'f6f6ff',
         }
-    });
-    return AppContainer;    
+    },
+    handleTextClick: function () {
+        console.log('CLICKED');
+    },
+    render: function () {
+        return (
+            VDOM.v$('div', { id: 'App', style: this.styles.main }, [
+                AppHeader(),
+                AppBody(),
+            ])
+        );
+    }
 });
 
+export default AppContainer;

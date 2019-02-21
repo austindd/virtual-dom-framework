@@ -1,15 +1,25 @@
-// import VDOM from './lib/vdom/vdom';
-// import App from './App';
+let testButton = document.createElement('button');
+testButton.appendChild(document.createTextNode('Click to print to console!'));
+document.body.appendChild(testButton);
 
 
 
+const AppInit = function () {
+
+}
+AppInit();
+
+import {VDOM} from './lib/vdom/vdom';
+import App from './App';
 
 
-console.log('-- Loading index.js');
 
-
-let testHeader = document.createElement('h1')
-testHeader.appendChild(document.createTextNode('index.js is loaded!'));
-document.body.append(testHeader);
 
 console.log('-- Done');
+
+if (module.hot) {
+    module.hot.accept();
+}
+
+
+// App.update();

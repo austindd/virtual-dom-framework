@@ -1,6 +1,5 @@
+import {VDOM, v$} from '../lib/vdom/vdom';
 
-define(['vdom'], (VDOM) => {
-    const v$ = VDOM.v$;
 
     const ContentCol = VDOM.createClass({
         styles: {
@@ -39,6 +38,5 @@ define(['vdom'], (VDOM) => {
             )
         }
     });
-    return ContentCol;    
-});
 
+    export default ContentCol;
