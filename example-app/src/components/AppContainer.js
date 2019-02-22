@@ -1,4 +1,4 @@
-import {VDOM} from '../lib/vdom/vdom';
+import VDOM from '../lib/vdom/vdom';
 import AppHeader from './AppHeader';
 import AppBody from './AppBody';
 

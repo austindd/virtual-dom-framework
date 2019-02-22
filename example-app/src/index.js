@@ -1,25 +1,30 @@
-let testButton = document.createElement('button');
-testButton.appendChild(document.createTextNode('Click to print to console!'));
-document.body.appendChild(testButton);
 
-
-
-const AppInit = function () {
-
-}
-AppInit();
-
-import {VDOM} from './lib/vdom/vdom';
+import VDOM from './lib/vdom/vdom';
 import App from './App';
 
+// Define the root node in the DOM for application entry point.
+let ROOT = document.createElement('div');
+ROOT.id = "ROOT";
+document.body.appendChild(ROOT);
+
+// Configure the virtual DOM object to render at the root node.
+// Mixin/plugin support coming soon.
+VDOM.config({
+    rootNode: ROOT,
+    rootComponent: App()
+})
 
 
+// Call the 'update' function of the root component to begin updating the DOM.
+App().update();
 
-console.log('-- Done');
-
+// Boilerplate for Hot Module Replacement using Webpack dev server./
 if (module.hot) {
+    module.hot.dispose(function () {
+        ROOT.remove();
+        console.clear();
+    })
     module.hot.accept();
 }
 
 
-// App.update();

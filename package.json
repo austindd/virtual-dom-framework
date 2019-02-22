@@ -26,7 +26,5 @@
     "url": "https://github.com/austinddavis/virtual-dom-framework/issues"
   },
   "homepage": "https://github.com/austinddavis/virtual-dom-framework#readme",
-  "dependencies": {
-    "requirejs": "^2.3.6"
-  }
+  "dependencies": {}
 }

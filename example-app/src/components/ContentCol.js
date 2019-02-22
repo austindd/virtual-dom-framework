@@ -1,4 +1,4 @@
-import {VDOM, v$} from '../lib/vdom/vdom';
+import VDOM, {v$} from '../lib/vdom/vdom';
 
 
     const ContentCol = VDOM.createClass({
