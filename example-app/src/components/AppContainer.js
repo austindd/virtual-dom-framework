@@ -4,6 +4,7 @@ import AppBody from './AppBody';
 
 
 const AppContainer = VDOM.createClass({
+    name: 'AppContainer',
     styles: {
         main: {
             margin: '0 auto',

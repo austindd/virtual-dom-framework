@@ -2,6 +2,7 @@ import VDOM, {v$} from '../lib/vdom/vdom';
 
 
     const AppHeader = VDOM.createClass({
+        name: 'AppHeader',
         styles: {
             appHeader: {
                 position: 'relative',

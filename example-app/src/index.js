@@ -2,6 +2,9 @@
 import VDOM from './lib/vdom/vdom';
 import App from './App';
 
+
+
+
 // Define the root node in the DOM for application entry point.
 let ROOT = document.createElement('div');
 ROOT.id = "ROOT";

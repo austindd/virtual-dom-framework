@@ -8,6 +8,7 @@ import AppContainer from './components/AppContainer';
 
 
 const App = VDOM.createClass({
+    name: 'App',
     test: 'TEST',
     render: () => {
         return (

@@ -32,7 +32,7 @@ import VDOM, {v$} from '../lib/vdom/vdom';
                 this.textValue = this.parentProps.textValue;
             }
             return (
-                v$('div', { id: this.parentProps.key, className: 'ContentCol', style: this.styles.ContentCol, events: { click: this.handleClick.bind(this) } }, [
+                v$('div', { id: this.parentProps.key, className: 'ContentCol', style: this.styles.ContentCol, events: {click: this.handleClick.bind(this)} }, [
                     this.textValue
                 ])
             )

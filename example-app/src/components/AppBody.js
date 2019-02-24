@@ -2,6 +2,7 @@ import VDOM, {v$} from '../lib/vdom/vdom';
 import ContentCol from './ContentCol';
 
 const AppBody = VDOM.createClass({
+    name: 'AppBody',
     styles: {
         appBody: {
             display: 'flex',
@@ -45,11 +46,9 @@ const AppBody = VDOM.createClass({
             return h;
         }
         let rgbValue = HSVtoRGB(randomHValue(), 0.5, 0.95);
-        console.log('New Background Color', rgbValue);
         let cssColorString = `rgb(${rgbValue.r}, ${rgbValue.g}, ${rgbValue.b})`;
 
         this.styles.appBody.backgroundColor = cssColorString;
-        console.log(this.styles.appBody);
         this.update();
     },
     render: function () {
