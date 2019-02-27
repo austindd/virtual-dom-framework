@@ -1,9 +1,10 @@
 
 import VDOM from './lib/vdom/vdom';
 import App from './App';
+import eventHub from './lib/vdom/vdom-events/vdom-events';
 
 
-
+console.log(('' + Math.random()).slice(2));
 
 // Define the root node in the DOM for application entry point.
 let ROOT = document.createElement('div');
