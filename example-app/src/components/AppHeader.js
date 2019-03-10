@@ -59,7 +59,7 @@ import VDOM, {v$} from '../lib/vdom/vdom';
         render: function () {
             return (
                 v$('div', { className: 'AppHeader', style: this.styles.appHeader }, [
-                    v$('h1', { style: this.styles.titleText }, ["Gorgeous Header"])
+                    v$('h1', { style: this.styles.titleText }, ["Application Header"])
                 ])
             );
         }

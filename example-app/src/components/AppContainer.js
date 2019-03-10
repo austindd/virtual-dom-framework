@@ -19,8 +19,8 @@ const AppContainer = VDOM.createClass({
     render: function () {
         return (
             VDOM.v$('div', { id: 'App', style: this.styles.main }, [
-                AppHeader(),
-                AppBody(),
+                AppHeader,
+                AppBody,
             ])
         );
     }

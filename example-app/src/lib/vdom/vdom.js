@@ -1,16 +1,6 @@
 
-let vdomDebugger = Object.create(Object, {
-    data: {
-        value: [],
-        writable:true, enumerable: true,
-    },
-    eventLog: {
-        value: []
-    },
-
-});
-
-
+const { vdomDebugger } = require('./vdom-debugger');
+console.log(vdomDebugger);
 
 const createVDOM = function () {
 
@@ -28,7 +18,6 @@ const createVDOM = function () {
         }
     }
 
-    
 
     // ==============================================================================================
     // =================================  DOM Manipulation Methods  =================================
@@ -42,7 +31,6 @@ const createVDOM = function () {
     VDOM.createVirtualElement = (type, props = {}, children = []) => {
         return new VDOM.VirtualElement(type, props, children);
     }
-
 
 
     // VDOM.removeEvent = ($target, eventType, useCapture) => {
@@ -167,7 +155,7 @@ const createVDOM = function () {
     }
     VDOM.updateProp = function ($target, propName, newValue, oldValue) {
         // console.log("____ update SINGLE prop ____");
-        
+
         if (!newValue) {
             VDOM.removeProp($target, propName, oldValue);
         } else if (!oldValue) {
@@ -176,16 +164,42 @@ const createVDOM = function () {
         } else if (newValue !== oldValue) {
             // Logging to see how many are set during each update;
             if (propName === "events") {
-                console.log("oldvalue:", oldValue);
-                console.log("newValue:", newValue);
+                /*
+                KNOWN BUG & WORK-AROUND:
+
+                There is currently an issue where event handler functions in old/new
+                virtual DOM instances are evaluating as unequal, despite their
+                contexts referring to the same Component class constructor function.
+                Below is a workaround that removes the old event listener and adds the new
+                one for each VDOM update cycle. This may become a performance issue as more
+                event listeners are added in larger applications.
+
+                Currently working on alternative solution that uses top-level event delegation
+                at the document level for all event types. This would eliminate the need for new
+                event listeners, but it doesn't solve the underlying prop-diffing error,
+                so it would still add new event handler functions as props to the virutal DOM.
+                These would still need to be removed on each update as a work-around until we
+                find a way to maintain references to the original bound event handler functions.
+                */
                 if (oldValue.click && newValue.click) {
+                    // console.log("oldvalue:", oldValue.click);
+                    // console.log("newValue:", newValue.click);
+
                     console.log(oldValue.click === newValue.click);
                     console.log(oldValue.click == newValue.click);
+
+                    // vdomDebugger.data.forEach(handler => {
+                    //     if (handler === newValue.click) {console.log(true);}
+                    //     else console.log(false);
+                    //     if (handler === oldValue.click) {console.log(true, 'Old Handler Equal?');}
+                    //     else console.log(false);
+                    // });
+
                 }
                 let args = Array.prototype.slice.call(arguments, 0);
                 console.log(args);
-                vdomDebugger.data.push(args);
-
+                // vdomDebugger.data.push(args);
+                VDOM.removeProp($target, propName, oldValue);
             }
 
 
@@ -197,7 +211,6 @@ const createVDOM = function () {
 
         // console.log('Old Props:', oldProps);
         // console.log('New Props:', newProps);
-        // console.log('New Props: ', newProps, '| Old Props:', oldProps)
         const props = Object.assign({}, newProps, oldProps);
         Object.keys(props).forEach(propName => {
             /* Call updateProp, passing undefined props as __explicitly__ undefined values */
@@ -243,7 +256,7 @@ const createVDOM = function () {
                 createEl($element);
             }
             else {
-                console.log('new node created:', vNode);
+                // console.log('new node created:', vNode);
                 $element = document.createElement(vNode.type);
                 if (vNode.children) {
                     appendChildren($element, vNode.children);
@@ -321,6 +334,11 @@ const createVDOM = function () {
             return sourceItem;
         }
 
+        // if (typeof sourceItem === 'function') { 
+        //     console.log('FUNCTION', sourceItem);
+        //     return sourceItem;
+        // }
+
         let targetItem;
 
         if (typeof sourceItem === 'object') {
@@ -336,6 +354,14 @@ const createVDOM = function () {
                 } else {
                     Object.keys(sourceItem).forEach((k) => {
                         targetItem[k] = filterAndCopy(sourceItem[k]);
+                        // if (sourceItem[k] === targetItem[k]) {
+                        //     console.log('_______EQUAL', sourceItem[k]);
+                        //     console.log(sourceItem[k] === targetItem[k]);
+                        // } else {
+                        //     console.log('_NOT EQUAL', sourceItem[k]);
+                        //     console.log(sourceItem[k] === targetItem[k]);
+
+                        // }
                     });
                 }
             }
@@ -350,6 +376,8 @@ const createVDOM = function () {
         // Expected types for renderedItem: VDOMComponent, function, object,
         const rootObject = VDOM.rootComponent.render();
         const result = filterAndCopy(rootObject);
+
+
         return result;
     }
 
@@ -363,80 +391,123 @@ const createVDOM = function () {
         console.log('____________________________ UPDATING ____________________________');
         console.log('Old Virtual DOM Tree:');
         console.log(VDOM.currentRenderTree);
+        if (VDOM.currentRenderTree) {
+            console.log(VDOM.currentRenderTree.children[1].children[3].props.events.click);
+            vdomDebugger.data.push(VDOM.currentRenderTree.children[1].children[3].props.events.click);
+        }
         const newRenderTree = VDOM.buildRenderTree();
         console.log('New Virtual DOM Tree:');
         console.log(newRenderTree);
+
         VDOM.updateRealDOM(VDOM.$rootNode, newRenderTree, VDOM.currentRenderTree);
         VDOM.currentRenderTree = filterAndCopy(newRenderTree);
+        if (VDOM.currentRenderTree && newRenderTree) {
+            console.log(
+                newRenderTree.children[1].children[3].props.events.click ===
+                VDOM.currentRenderTree.children[1].children[3].props.events.click
+            );
+        }
 
-        // console.log('Debugger:', vdomDebugger.data);
-        // let dataObject = {
-        //     $targets: [],
-        //     propNames: [],
-        //     newValues: [],
-        //     oldValues: [],
-        // }
-        // vdomDebugger.data.forEach((argArray, index) => {
-        //     dataObject.$targets.push(argArray[0]);
-        //     dataObject.propNames.push(argArray[1]);
-        //     dataObject.newValues.push(argArray[2]);
-        //     dataObject.oldValues.push(argArray[3]);
-        // });
-        // console.log(dataObject);
-        // dataObject.newValues.forEach((nv) => {
-        //     let matches = dataObject.oldValues.filter((ov) => {
-        //         console.log(nv.click, ov.click);
-        //         ov['click'] === nv['click'] ? true : false;
-        //     });
-        //     console.log(matches);
-        // })
 
 
         console.log('______________________________ DONE ______________________________');
     }
+    // ----------------------------- WORKING CODE -----------------------------
+    // const VDOMComponent = function (props = {}) {
+    //     if (props) {
+    //         Object.keys(props).forEach((propName) => {
+    //             this[propName] = props[propName];
+    //         });    
+    //     }
+    //     if (!this.render) {
+    //         this.render = () => {
+    //             // To be defined in the component instance.
+    //             // Initially returns undefined to throw an error if not overwritten.
+    //             return new Error('VDOM.render is undefined');
+    //         }
+    //     }
+    //     this.update = () => {
+    //         VDOM.updateVirtualDOM();
+    //     }
+    //     this.setState = (newState) => {
+    //         if (newState) {
+    //             Object.keys(newState).forEach((prop) => {
+    //                 this.state[prop] = newState[prop];
+    //             });
+    //         }
+    //     }
+    // }
+    // ----------------------------- END WORKING CODE -----------------------------
 
-    // VDOM.v$ = function (type, props = {}, children = {}) {
-    //     return { type, props, children };
-    // };
 
-    const VDOMComponent = function (props) {
-        Object.keys(props).forEach((propName) => {
-            this[propName] = props[propName];
-        });
-
-        // this.props = props;
-
-        if (!this.render) {
-            this.render = () => {
-                // To be defined in the component instance.
-                // Initially returns undefined to throw an error if not overwritten.
-                return new Error('VDOM.render is undefined');
-            }
+    const VDOMComponent = function (props = {}) {
+        if (props) {
+            Object.keys(props).forEach((propName) => {
+                this[propName] = props[propName];
+            });
         }
-        this.update = () => {
-            VDOM.updateVirtualDOM();
-        }
-        this.setState = (newState) => {
-            if (newState) {
-                Object.keys(newState).forEach((prop) => {
-                    this.state[prop] = newState[prop];
-                });
-            }
-        }
-
+        this.render = props.render;
+        this.state = {};
     }
+    VDOMComponent.prototype.render = () => {
+        // To be defined in the component instance.
+        // Initially returns undefined to throw an error if not overwritten.
+        return new Error('VDOM.render is undefined');
+    }
+    VDOMComponent.prototype.update = () => {
+        VDOM.updateVirtualDOM();
+    }
+    VDOMComponent.prototype.setState = (newState) => {
+        if (newState) {
+            Object.keys(newState).forEach((prop) => {
+                VDOMComponent.state[prop] = newState[prop];
+            });
+        }
+    }
+    
 
     // createClass is a factory function that creates and returns another factory function. 
     const createClass = function (classProps = {}) {
-        // ===================== Old Working Code ==========================================================
-        let ComponentClass = function (parentProps = {}) {
-            this.mergedProps = Object.assign({}, classProps, { parentProps: parentProps });
-            return new VDOMComponent(this.mergedProps);
+
+        let Component = function (props) {
+            this._super.call(this, props);
         }
-        console.log(ComponentClass);
-        return ComponentClass;
+        Component.prototype = Object.create(VDOMComponent.prototype);
+        Component.prototype.constructor = Component;
+        Component.prototype._super = VDOMComponent;
+        console.warn(Component);
+
+        if (classProps) {
+            console.log(Object.keys(classProps));
+            Object.keys(classProps).forEach(function (propName) {
+                if (typeof classProps[propName] === 'function') {
+                    Component.prototype[propName] = classProps[propName].bind(Component.prototype.constructor);
+                } else {
+                    Component[propName] = classProps[propName];
+                }
+            });
+        }
+
+        console.warn(Component);
+        console.warn(Component.prototype);
+
+        return new Component(classProps);
+
+        // ===================== Old Working Code ==========================================================
+        // let ComponentClass = function (parentProps = {}) {
+        //     this.mergedProps = Object.assign({}, classProps, { parentProps: parentProps });
+        //     return new VDOMComponent(this.mergedProps);
+        // }
+        // console.log(ComponentClass);
+        // return ComponentClass;
     }
 
+    const assignToPrototype = function (classObj, ...rest) {
+        let methodNames = Array.prototype.slice.call(arguments, 1);
+        methodNames.forEach(function (method) {
+            classObj.prototype[method] = classObj[method];
+        })
+    }
 
     class Component {
         constructor(props) {

@@ -12,11 +12,11 @@ const App = VDOM.createClass({
     test: 'TEST',
     render: () => {
         return (
-            AppContainer()
+            AppContainer
         );
     }
 });
-console.log("App:", App());
+console.log("App:", App.render());
 
 
 

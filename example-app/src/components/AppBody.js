@@ -1,4 +1,4 @@
-import VDOM, {v$} from '../lib/vdom/vdom';
+import VDOM, { v$, Component } from '../lib/vdom/vdom';
 import ContentCol from './ContentCol';
 
 // const AppBody = VDOM.createClass({
@@ -68,21 +68,24 @@ import ContentCol from './ContentCol';
 
 
 
+class AppBody extends Component {
+    constructor(props) {
+        super(props);
+        this.name = 'AppBody',
+        this.styles = {
+            appBody: {
+                display: 'flex',
+                margin: '0',
+                width: '100%',
+                height: '84.28vh'
+            },
+            sideBar: {
 
-const AppBody = VDOM.createClass({
-    name: 'AppBody',
-    styles: {
-        appBody: {
-            display: 'flex',
-            margin: '0',
-            width: '100%',
-            height: '84.28vh'
-        },
-        sideBar: {
-
-        },
-    },
-    updateBGColor: function changeBGColor() {
+            },
+        };
+        this.updateBGColor = this.updateBGColor.bind(this);
+    }
+    updateBGColor() {
         const HSVtoRGB = function (h, s, v) {
             var r, g, b, i, f, p, q, t;
             if (arguments.length === 1) {
@@ -115,23 +118,24 @@ const AppBody = VDOM.createClass({
         }
         let rgbValue = HSVtoRGB(randomHValue(), 0.5, 0.95);
         let cssColorString = `rgb(${rgbValue.r}, ${rgbValue.g}, ${rgbValue.b})`;
-
+    
         this.styles.appBody.backgroundColor = cssColorString;
         this.update();
-    },
-    render: function () {
+    }
+    render () {
         return (
             v$('div', { id: 'AppBody', style: this.styles.appBody }, [
-                new ContentCol({ updateBGColor: this.updateBGColor.bind(this), key: 1, textValue: "Most of these panels" }),
-                new ContentCol({ updateBGColor: this.updateBGColor.bind(this), key: 2, textValue: "will change the background color" }),
-                new ContentCol({ updateBGColor: this.updateBGColor.bind(this), key: 3, textValue: "when you CLICK them" }),
-                new ContentCol({ updateBGColor: this.updateBGColor.bind(this), key: 4, textValue: "But not ALL of them..." }),
+                new ContentCol({ updateBGColor: this.updateBGColor, key: 1, textValue: "Most of these panels" }),
+                new ContentCol({ updateBGColor: this.updateBGColor, key: 2, textValue: "will change the background color" }),
+                new ContentCol({ updateBGColor: this.updateBGColor, key: 3, textValue: "when you CLICK them" }),
+                new ContentCol({ updateBGColor: this.updateBGColor, key: 4, textValue: "But not ALL of them..." }),
                 new ContentCol({ key: 5, textValue: "At least, not THIS one." }),
-
+    
             ])
         )
     }
-});
+    
+}
 
 
 

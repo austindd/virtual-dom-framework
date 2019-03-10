@@ -15,12 +15,12 @@ document.body.appendChild(ROOT);
 // Mixin/plugin support coming soon.
 VDOM.config({
     rootNode: ROOT,
-    rootComponent: App()
+    rootComponent: App
 })
 
 
 // Call the 'update' function of the root component to begin updating the DOM.
-App().update();
+App.update();
 
 // Boilerplate for Hot Module Replacement using Webpack dev server./
 if (module.hot) {
