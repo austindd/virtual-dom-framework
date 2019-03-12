@@ -1,15 +1,17 @@
 # Virtual DOM Framework Pattern in Vanilla JavaScript
 ### Reverse-Engineering Features of ReactJS
 
-[Take a look at the code](https://github.com/austinddavis/virtual-dom-framework/blob/master/vdom.js)
+[Take a look at the code](https://github.com/austinddavis/virtual-dom-framework/);
 
 ### About:
 
-This JavaScript library provides an opinionated DOM manipulation framework based loosely on ReactJS.
+An opinionated DOM manipulation framework based loosely on React.
 
-At its core is an algorithm that constructs a virtual representation of a desired DOM tree, a "virtual DOM," and compares it against a previous version of itself, and updates the real DOM based on their differences. This should be a familiar concept for those who have used front-end JS frameworks.
+***Note**: This framework is currently under construction. The 'example-app' folder is my testing ground for the library, and the main 'VDOM' folder is currently out of date*
 
-This library is just a different take on that concept. I just wanted to explore the concepts for myself, and this is the result of my self-education.
+The core algorithm constructs a virtual representation of a desired DOM tree, a "virtual DOM," and compares it against a previous version of itself, and updates the real DOM based on their differences. This should be a familiar concept for those who have used front-end JS frameworks.
+
+This library is just a different take on that concept. I just wanted to explore the concepts for myself. This repository is the result of my self-education.
 
 
 
@@ -19,15 +21,16 @@ This started as a personal project to improve my understanding of DOM manipulati
 
 There are still plenty of known and unknown bugs. Contributions are welcomed for code improvements, documentation, bug reports/fixes, testing, and feature requests. Just let me know.
 
-Documentation is still pending as of February 14, 2019. Will be updated soon with a basic API guide.
+Documentation is still pending as of March 12, 2019. Will be updated soon with a basic API guide.
 
 ### To-Do List:
 
-- Provide basic API documentaion (top priority).
-- Fix implementation of HTML inline 'on-event' event handlers.
-- Add ability to nest component constructors inside each other within a single 'render' function. This will require some refactoring of the `VDOM.createClass` method.
+- Fix DOM event handling by implementing top-level event delegation (a technique used by React to solve the same problem).
+- Settle on ideal component composition structure.
+- Normalize component class composition for ES5 and ES6 classes.
+- Provide basic API documentaion.
 - Improve error handling for edge cases during the construction and diffing of virtual DOM's.
-- Add API for global state management (use event emitters as get/set methods for global state access).
+- Add API for global state management (should implement this as a plugin to avoid conflicts with other state management libraries).
 
 ### Additional Notes:
 

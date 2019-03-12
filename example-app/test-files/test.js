@@ -334,16 +334,18 @@ const ClassComponent = function (component) {
 };
 ClassComponent.prototype.constructor = ClassComponent;
 
-
+let gCounter = 0;
 
 // Type Class
 const Component = function (props = {}) {
+    gCounter++;
     if (props) {
         Object.keys(props).forEach(function (propName) {
             this.propName = props[propName];
         });
     }
     this.state = {};
+    console.trace({ gCounter });
 };
 Component.prototype = Object.create(Object);
 Component.prototype.constructor = Component;
@@ -361,16 +363,12 @@ Component.prototype.setState = (newState) => {
     }
 }
 
-const createClass = function (component, protoMethods, staticMethods) {
-    const name = component.prototype.constructor.name;
-    component.prototype = Object.create(Component.prototype);
-    component.prototype.constructor = component;
-    component.prototype.constructor.name = name;
-    if (protoMethods) { extendObject(component.prototype, protoMethods); }
-    if (staticMethods) { extendObject(component, staticMethods); }
-
-
-    return component;
+const createClass = function (SuperClass, ClassConstructor, protoMethods, staticMethods) {
+    ClassConstructor.prototype = Object.create(SuperClass.prototype);
+    ClassConstructor.prototype.constructor = ClassConstructor;
+    if (protoMethods) { extendObject(ClassConstructor.prototype, protoMethods); }
+    if (staticMethods) { extendObject(ClassConstructor, staticMethods); }
+    return ClassConstructor;
 }
 
 const functionalComponent = function (component) {
@@ -398,51 +396,59 @@ const renderElement = function (type, props = {}, children = []) {
 // TESTING =================================================================================================
 
 
-class TestClass1 extends Component {
-    constructor(props) {
-        super(props);
-        this.props = props;
-        this.randomID = ("" + Math.random()).slice(2);
-        this.item = 'item';
-        this.staticMethod1 = function () {
-            return 'staticMethod1';
-        }
-        this.boundStaticMethod = () => {
-            return 'boundStaticMethod';
-        }
-    }
+// class TestClass1 extends Component {
+//     constructor(props) {
+//         super(props);
+//         this.props = props;
+//         this.randomID = ("" + Math.random()).slice(2);
+//         this.item = 'item';
+//         this.staticMethod1 = function () {
+//             return 'staticMethod1';
+//         }
+//         this.boundStaticMethod = () => {
+//             return 'boundStaticMethod';
+//         }
+//     }
 
-    protoMethod1() {
-        return 'protoMethod1';
-    }
-    protoMethod2() {
-        return 'protoMethod2 is bound to constructore';
-    }
-}
+//     protoMethod1() {
+//         return 'protoMethod1';
+//     }
+//     protoMethod2() {
+//         return 'protoMethod2 is bound to constructore';
+//     }
+// }
 
 
-console.dir(TestClass1);
+// console.dir(TestClass1);
 
 
 const TestClass2 = createClass(
-    function TestClass2 (props) {
+    Component,
+    function TestClass2(props) {
+        Component.apply(this, arguments);
         this.props = props;
         console.dir(this);
         this.stuff = 'newStuff';
+        this.myMethod1 = this.myMethod1.bind(this);
     }, {
         myMethod1: function () {
-            return this.construct.props;
+            return this.props;
         },
     }, {
         myStaticMethod: function () {
-            return this.construct.props;
+            return this;
         }
     }
 )
-
 TestClass2.prototype.subClassProtoMethod = function (things) {
     return things;
 }
 
-console.dir(TestClass2)
+let ttt = new TestClass2({ prop1: 'idospahidopsaf' });
 
+
+console.dir({ ttt });
+console.dir(ttt.myMethod1());
+
+console.dir(TestClass2.constructor);
+console.dir(TestClass2.myStaticMethod());
