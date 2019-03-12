@@ -320,34 +320,41 @@ const VirtualElement = function (type, props, children) {
     this.props = props;
     this.children = children;
 }
-// Type Callable Function
+VirtualElement.prototype.constructor = VirtualElement;
+// Component wrapper classes -- defines the type of function
 const FunctionalComponent = function (component) {
     this.component = component;
     this.props = null;
     this.children = null;
+    this.componentInstance = null
+    this.rootVirtualNode = null;
+    this.rootDOMNode = null;
+    this.componentID = null;
+    this.componentType = 'functional';
 };
 FunctionalComponent.prototype.constructor = FunctionalComponent;
 const ClassComponent = function (component) {
     this.component = component;
     this.props = null;
     this.children = null;
+    this.componentInstance = null
+    this.rootVirtualNode = null;
+    this.rootDOMNode = null;
+    this.componentID = null;
+    this.componentType = 'class';
 };
 ClassComponent.prototype.constructor = ClassComponent;
 
-let gCounter = 0;
 
 // Type Class
 const Component = function (props = {}) {
-    gCounter++;
     if (props) {
         Object.keys(props).forEach(function (propName) {
             this.propName = props[propName];
         });
     }
     this.state = {};
-    console.trace({ gCounter });
 };
-Component.prototype = Object.create(Object);
 Component.prototype.constructor = Component;
 Component.prototype.render = function () {
     throw new Error('VDOM.render must be defined');
@@ -391,35 +398,36 @@ const renderElement = function (type, props = {}, children = []) {
     else if (typeof type === 'string') {
         return new VirtualElement(type, props, children);
     }
+    else { throw new TypeError ("Invalid argument 'type' for renderElement()")};
 }
 
 // TESTING =================================================================================================
 
 
-// class TestClass1 extends Component {
-//     constructor(props) {
-//         super(props);
-//         this.props = props;
-//         this.randomID = ("" + Math.random()).slice(2);
-//         this.item = 'item';
-//         this.staticMethod1 = function () {
-//             return 'staticMethod1';
-//         }
-//         this.boundStaticMethod = () => {
-//             return 'boundStaticMethod';
-//         }
-//     }
+class TestClass1 extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.randomID = ("" + Math.random()).slice(2);
+        this.item = 'item';
+        this.constructorMethod1 = function () {
+            return 'staticMethod1';
+        }
+        this.arrowFunc = () => {
+            return 'boundStaticMethod';
+        }
+    }
 
-//     protoMethod1() {
-//         return 'protoMethod1';
-//     }
-//     protoMethod2() {
-//         return 'protoMethod2 is bound to constructore';
-//     }
-// }
+    protoMethod1() {
+        return 'protoMethod1';
+    }
+    protoMethod2() {
+        return 'protoMethod2 is bound to constructore';
+    }
+}
 
 
-// console.dir(TestClass1);
+console.dir(TestClass1);
 
 
 const TestClass2 = createClass(
@@ -443,12 +451,16 @@ const TestClass2 = createClass(
 TestClass2.prototype.subClassProtoMethod = function (things) {
     return things;
 }
+console.dir(TestClass2);
+
+
+
+let sss = new TestClass1({prop34: 'diososodl'});
+console.dir({sss});
+
 
 let ttt = new TestClass2({ prop1: 'idospahidopsaf' });
-
-
 console.dir({ ttt });
 console.dir(ttt.myMethod1());
 
-console.dir(TestClass2.constructor);
 console.dir(TestClass2.myStaticMethod());
