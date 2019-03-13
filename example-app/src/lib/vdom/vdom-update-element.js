@@ -5,10 +5,10 @@
 
 // }
 
-const isCustomProp = (name) => {
+export function isCustomProp (name) {
     return false // For now...
 }
-const setBooleanProp = ($target, propName, value) => {
+export function setBooleanProp ($target, propName, value) {
     if (value) {
         $target.setAttribute(propName, value);
         $target[propName] = true;
@@ -16,11 +16,11 @@ const setBooleanProp = ($target, propName, value) => {
         $target[propName] = false;
     }
 }
-const removeBooleanProp = ($target, propName) => {
+export function removeBooleanProp ($target, propName) {
     $target.removeAttribute(propName);
     $target[propName] = false;
 }
-const setProp = ($target, propName, value = null) => {
+export function setProp ($target, propName, value = null) {
     // console.log('Set Prop:', $target.id, propName, value);
     if (isCustomProp(propName)) {
         // Temporarily set to return without setting a custom prop. In place for future development purposes.
@@ -45,7 +45,7 @@ const setProp = ($target, propName, value = null) => {
         $target.setAttribute(propName, value);
     }
 }
-const removeProp = function ($target, propName, value = null) {
+export function removeProp ($target, propName, value = null) {
     if (isCustomProp(propName)) {
         return;
     } else if (propName === 'events') {
@@ -64,7 +64,7 @@ const removeProp = function ($target, propName, value = null) {
         removeBooleanProp($target, propName);
     }
 }
-const updateProp = function ($target, propName, newValue, oldValue) {
+export function updateProp ($target, propName, newValue, oldValue) {
     // console.log("____ update SINGLE prop ____");
 
     if (!newValue) {
@@ -117,7 +117,7 @@ const updateProp = function ($target, propName, newValue, oldValue) {
         setProp($target, propName, newValue);
     }
 }
-const updateProps = ($target, newProps, oldProps) => {
+export function updateProps ($target, newProps, oldProps) {
     // console.log('________ updateProps ________', $target.id, $target);
 
     // console.log('Old Props:', oldProps);
@@ -133,7 +133,7 @@ const updateProps = ($target, newProps, oldProps) => {
 
     });
 }
-const createNewElement = (vNode = { type: undefined, props: {}, children: [] }) => {
+export function createNewElement (vNode = { type: undefined, props: {}, children: [] }) => {
     console.log("Start createNewElement()");
     const createEl = (vNode) => {
         let $element; // <-- will be conditionally defined DOM node.
@@ -182,7 +182,7 @@ const createNewElement = (vNode = { type: undefined, props: {}, children: [] }) 
     return $node;
 }
 
-const nodeHasChanged = (vNode1, vNode2) => {
+export function nodeHasChanged (vNode1, vNode2) {
     if (typeof vNode1 !== typeof vNode2) {
         return true;
     };
@@ -199,7 +199,7 @@ const nodeHasChanged = (vNode1, vNode2) => {
 // 'newNode' and 'oldNode' represent two (potentially different) versions of the same target node.
 // If there are differences between versions, newNode will take precedence.
 // If the node was scheduled for removal from the DOM, then we expect to see
-const updateElement = ($parent, newNode, oldNode, index = 0) => {
+export function updateElement ($parent, newNode, oldNode, index = 0) {
     console.log(newNode);
     if (!oldNode) {             /* If reference to cached node does not exist */
         const $node = createNewElement(newNode);
