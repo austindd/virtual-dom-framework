@@ -2,6 +2,16 @@
 // input root virtual node
 // output virtual DOM tree
 
+const __ComponentTypes__ = {
+    VdomComponent: Symbol('VdomComponent'),
+    ClassComponent: Symbol('ClassComponent'),
+    FunctionalComponent: Symbol('FunctionalComponent'),
+    MetaComponent: Symbol('MetaComponent')
+}
+
+
+
+
 // ====== DEFINED FOR TESTING PURPOSES ======
 const updateVirtualDOM = function () {
     console.log('updateVirtualDOM()');
@@ -16,6 +26,7 @@ const VdomComponent = function (props = {}) {
         });
     }
     this.state = {};
+    this.__$type$__ = __ComponentTypes__.VdomComponent;
 }
 VdomComponent.prototype.constructor = VdomComponent;
 VdomComponent.prototype.render = () => {
@@ -73,22 +84,22 @@ const MetaComponent = function (args = {
     props: null,
     virtualElement: null,
     $element: null,
-    componentType: null
+    componentType: null,
 }) {
     const _this = this;
     Object.keys(args).forEach(function (key) {
         _this[key] = args[key];
     });
-    console.log(this);
+    _this.__$type$__ = __ComponentTypes__.MetaComponent;
 }
 MetaComponent.prototype.updateVirtualElement = function (props) {
     if (this.componentType === "class") {
         this.virtualElement = this.instance.render();
-    } else if (this.componentType === "functional") {
+    } else if (this.componentType === "function") {
         this.virtualElement = this.instance(props);
     } else throw new TypeError('componentType is invalid');
 }
-MetaComponent.prototype.renderVirtualElement = function (props) {
+MetaComponent.prototype.render = function (props) {
     if (!this.virtualElement) {
         this.updateVirtualElement(props);
     }
@@ -113,43 +124,42 @@ VirtualElement.prototype.constructor = VirtualElement;
 // Wrapper class for identifying functional components
 const FunctionalComponent = function (archetype) {
     this.archetype = archetype;
+    this.__$type$__ = __ComponentTypes__.FunctionalComponent;
 };
 FunctionalComponent.prototype.constructor = FunctionalComponent;
-FunctionalComponent.prototype.instantiate = function (args = {
-    props: null,
-    $element: null,
-}) {
+FunctionalComponent.prototype.instantiate = function (props = {}) {
     return new MetaComponent({
         instanceID: ("" + Math.random()).slice(2),
         archetype: this.archetype,
-        instance: (args) => archetype(args), // curried archetype function bound to this MetaComponent instance
-        props: args.props,
+        render: (args) => archetype(args), // curried archetype function bound to this MetaComponent instance
+        instance: undefined,
+        props: props,
         virtualElement: null,
-        $element: args.$element,
-        componentType: "class"
+        $element: null,
+        componentType: "function"
     });
 }
 
 
-// Wrapper class for identifying class components
+// Wrapper class for identifying class components==============
 const ClassComponent = function (archetype) {
     this.archetype = archetype;
+    this.__$type$__ = __ComponentTypes__.ClassComponent;
 };
 ClassComponent.prototype.constructor = ClassComponent;
-ClassComponent.prototype.instantiate = function (args = {
-    props: null,
-    $element: null,
-}) {
+ClassComponent.prototype.instantiate = function (props = {}) {
     return new MetaComponent({
         instanceID: ("" + Math.random()).slice(2),
         archetype: this.archetype,
-        instance: new this.archetype(args.props),
-        props: args.props,
+        instance: new this.archetype(props),
+        props: props,
         virtualElement: null,
-        $element: args.$element,
+        $element: null,
         componentType: "class"
     });
 }
+// END ClassComponent ==========================================
+
 
 const functionalComponent = function (component) {
     return new FunctionalComponent(component);
@@ -158,21 +168,33 @@ const classComponent = function (component) {
     return new ClassComponent(component);
 }
 const createVirtualElement = (type, props = {}, children = []) => {
-    let _type;
-    if (type instanceof VdomComponent) {
-        _type = new ClassComponent(type);
-    } else {
-        _type = type;
-    }
-    return new VirtualElement(_type, props, children);
+    return new VirtualElement(type, props, children);
 }
 
 
 
 
-
-
-
+function renderComponent(vNode) {
+    let target;
+    if (vNode.type instanceof ClassComponent && vNode.__$type$__ === __ComponentTypes__.ClassComponent) {
+        let metaComponent = vNode.type.instantiate(vNode.props);
+        target = metaComponent.instance.render(vNode.props);
+    }
+    else if (vNode.type instanceof FunctionalComponent && vNode.__$type$__ === __ComponentTypes__.FunctionalComponent) {
+        let metaComponent = vNode.type.instantiate(vNode.props);
+        target = metaComponent.render(vNode.props);
+    }
+    else if (vNode.type instanceof MetaComponent && vNode.__$type$__ === __ComponentTypes__.MetaComponent) {
+        console.log('META COMPONENT returned in raw VDOM tree');
+        if (vNode.componentType = "class") { target = vNode.type.instance.render(vNode.props); }
+        else if (vNode.componentType = "function") { target = vNode.type.render(vNode.props) }
+    }
+    else if (vNode.type instanceof VdomComponent && vNode.__$type$__ === __ComponentTypes__.VdomComponent) {
+        target = classComponent(vNode.type).instantiate(vNode.props).render();
+    }
+    else { return false; }
+    return target;
+}
 
 
 function vdomInitialRender(domRootNode, virtualRootNode) {
@@ -180,20 +202,21 @@ function vdomInitialRender(domRootNode, virtualRootNode) {
     let target = {};
     function walk($node, vNode) {
         if (vNode.type instanceof ClassComponent) {
-            const instance = ClassComponent.instantiate({props: vNode.props, $element: $node}); // creates MetaComponent instance
+            const instance = ClassComponent.instantiate({ props: vNode.props, $element: $node }); // creates MetaComponent instance
             console.dir('Component Instance:', instance);
-            
+
         }
         else {
             target.type = vNode.type;
-            target.props = vNode.props
+            target.props = vNode.props;
         }
-        
-        
+
+
     }
 
-
+    return target;
 }
+
 
 function buildVirtualDomTree(newVirtualRootNode = undefined, oldVirtualRootNode) {
 
@@ -204,20 +227,39 @@ function buildVirtualDomTree(newVirtualRootNode = undefined, oldVirtualRootNode)
         return vdomInitialRender(newVirtualRootNode);
     }
 
-    let target = {}
-    walkVirtualDOM(rootVirtualNode);
-    return target;
+    let result = {};
+    walkVirtualDOM(result, newVirtualRootNode, oldVirtualRootNode);
+    return result;
 
-    function walkVirtualDOM(vElement) {
-        if (vElement.type instanceof ClassComponent) {
+    function walkVirtualDOM(target, newVirtualNode, oldVirtualNode) {
+        if (propsHaveChanged(newVirtualNode.props, oldVirtualNode.props) === true) {
+            if (newVirtualNode.type !== oldVirtualNode.type) {
+                if (typeof newVirtualNode.type === 'string') {
+                    target.type = newVirtualNode.type; target.props = newVirtualNode.props;
+                }
+                else if (!!newVirtualNode.type.__$type$__) {
+                    target = renderComponent(newVirtualNode);
+                }
+            } else {
+                if (typeof newVirtualNode.type === 'string') {
+                    target.type = newVirtualNode.type; target.props = newVirtualNode.props;
+                }
 
+            };
+
+
+        } else { target = oldVirtualNode };
+
+
+        if (newVirtualNode.children) {
+            target.children = newVirtualNode.children.map(function(child, index) {
+                return walkVirtualDOM(target.children[index], newVirtualNode.children[index], oldVirtualNode.children[index]);
+            })
         }
 
-
-        if (vElement.children) {
-
-        }
+        return target;
     }
+
 
 
 }
@@ -226,8 +268,9 @@ function buildVirtualDomTree(newVirtualRootNode = undefined, oldVirtualRootNode)
 // TESTING ===========================================================================================
 
 
-class TestClass1 {
+class TestClass1 extends VdomComponent {
     constructor(props) {
+        super(props);
         this.props = props;
         this.randomID = ("" + Math.random()).slice(3);
         this.item = 'item';
@@ -258,11 +301,13 @@ class TestClass1 {
 
 
 // testing ClassComponent mutations in the render tree
+
 let classComp1 = classComponent(TestClass1);
 let classComp2 = classComponent(TestClass1);
 console.dir(classComp1);
 console.dir(classComp2);
 console.log(classComp1 === classComp2);
+console.log(classComp1.__$type$__ === classComp2.__$type$__);
 console.log(classComp1.archetype === classComp2.archetype);
 
 let inst1 = classComp1.instantiate({ props: { sayHi: 'Hello' } });
@@ -273,11 +318,10 @@ console.dir(inst2);
 console.log(inst1 === inst2);
 console.log(inst1.instanceID.length);
 
-let testVElement = inst1.renderVirtualElement();
-console.dir(inst1);
+let testVElement = inst1.render();
+console.dir(inst1.instance.render());
 console.dir(testVElement);
 console.log(inst1.virtualElement === testVElement);
-
 
 
 
@@ -295,6 +339,8 @@ const testFunc1 = function (props = {}) {
 
 
 // testing FunctionalComponent mutations in the render tree
+
+
 let funcComp1 = functionalComponent(testFunc1);
 let funcComp2 = functionalComponent(testFunc1);
 
@@ -302,8 +348,15 @@ console.dir(funcComp1);
 console.dir(funcComp2);
 console.log(funcComp1 === funcComp2);
 
-let inst3 = funcComp1.instantiate({props: {headerClassName: "pizza"}});
-let inst4 = funcComp1.instantiate({props: {headerClassName: "never-gonna-give-you-up"}});
+let inst3 = funcComp1.instantiate({ props: { headerClassName: "pizza" } });
+let inst4 = funcComp1.instantiate({ props: { headerClassName: "never-gonna-give-you-up" } });
 
 console.dir(inst3);
 console.dir(inst4);
+console.dir(inst3 === inst4);
+console.dir(inst3.render);
+console.dir(inst4.render);
+console.dir(inst3.instance === inst4.instance);
+
+
+
