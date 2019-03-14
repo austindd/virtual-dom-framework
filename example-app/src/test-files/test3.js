@@ -125,20 +125,24 @@ MetaComponent.prototype.createInstance = function (props = {}) {
         throw new TypeError("Cannot create new instance of functional component:", this.archetype);
     }
 }
-MetaComponent.prototype.updateComponent = function (props = {}) {
+MetaComponent.prototype.updateComponent = function (props = {}, children = []) {
+    let _this = this;
     let renderResult;
     if (this.__$type$__ === vdomTypes.FunctionalComponent) {
         renderResult = this.archetype(props);
+        this.children = children;
     } else if (this.__$type$__ === vdomTypes.ClassComponent) {
         this.instance = this.createInstance(props);
         renderResult = this.instance.render(props);
+        this.children = children;
     } else throw new TypeError("MetaComponent.__$type$__ not defined");
     if (renderResult === undefined) { throw new TypeError() }
     this.virtualElement = renderResult;
+console.log(this.children);
     if (this.virtualElement.__$type$__ === vdomTypes.VirtualElement) {
-        console.log('Virtual Element');
-        
-        this.virtualElement.children.push(this.children);
+        _this.children.forEach(function (child) {
+            _this.virtualElement.children.push(child);
+        });
     }
     this.initialized = true;
     // Returns instance of this MetaComponent wrapper class.
@@ -154,7 +158,6 @@ MetaComponent.prototype.renderComponent = function (props = {}) {
 
 // ============================================================================
 const Component = function (props = {}) {
-    console.log(this.prototype);
     if (props) {
         Object.keys(props).forEach((propName) => {
             this[propName] = props[propName];
@@ -239,8 +242,8 @@ function initializeVirtualDOM(rootComponent) {
                     if (Array.isArray(vNode)) {
                         // console.log("isArray === true");
                         if (vNode.length > 0) {
-                            vNode.forEach(function (item) {
-                                target = initialWalk(item);
+                            target = vNode.map(function (item) {
+                                return initialWalk(item);
                             });
                         } else target = [];
                     } else {
@@ -278,7 +281,7 @@ function initializeVirtualDOM(rootComponent) {
                     // console.log('Class Component', vNode);
                     if (!vNode.virtualElement) {
                         // console.log('instance NULL');
-                        vNode.updateComponent(vNode.props);
+                        vNode.updateComponent(vNode.props, vNode.children);
                         // console.log('vNode.virtualElement', vNode.virtualElement);
 
                         if (!vNode.virtualElement) {
@@ -295,7 +298,7 @@ function initializeVirtualDOM(rootComponent) {
                 case vdomTypes.FunctionalComponent:
                     // console.log('Functional Component', vNode);
                     if (!vNode.virtualElement) {
-                        vNode.updateComponent(vNode.props);
+                        vNode.updateComponent(vNode.props, vNode.children);
                         // console.log('vNode.virtualElement', vNode.virtualElement);
                         if (!vNode.virtualElement) {
                             throw new TypeError('vNode instance undefined');
@@ -536,7 +539,8 @@ class App extends Component {
                     $('h1', { className: 'main-header' }, [
                         'Application Header'
                     ])
-                ])
+                ]),
+                $(testFunc1, {stuff: 'stuff'}, ['text'])
             ])
         );
     }
