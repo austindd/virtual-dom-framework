@@ -132,7 +132,7 @@ MetaComponent.prototype.updateComponent = function (props = {}) {
         renderResult = this.instance.render(props);
     } else throw new TypeError("MetaComponent.__$type$__ not defined");
     this.virtualElement = renderResult;
-    if(this.virtualElement.__$type$__ === vdomTypes.VirtualElement) {
+    if (this.virtualElement.__$type$__ === vdomTypes.VirtualElement) {
         console.log('Virtual Element');
         this.virtualElement.children.push(this.children);
     }
@@ -189,13 +189,80 @@ function createVirtualElement(type, props = {}, children = []) {
         if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === vdomTypes.ClassComponent) {
             return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.ClassComponent })
         } else {
-            return new MetaComponent({archetype: type, props: props, children: children, __$type$__: vdomTypes.FunctionalComponent})
+            return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.FunctionalComponent })
         }
     }
 }
 const $ = createVirtualElement;
 
-// testing =============================================================================
+
+function initializeVirtualDOM(rootComponent) {
+    console.log("rootComponent:",rootComponent);
+    let result;
+    result = renderTree(result, rootComponent);
+
+    function renderTree(target, vNode) {
+        if (!vNode) {console.log('!vNode'); return vNode;};
+
+        if (!vNode.__$type$__) {
+            console.log('no __$type$__');
+            switch (typeof vNode) {
+                case 'string':
+                    console.log("typeof vNode === 'string'");
+                    target = vNode;
+                    break;
+                case 'number':
+                    console.log("typeof vNode === 'number'");
+                    target = vNode;
+                    break;
+                case 'bigint':
+                    console.log("typeof vNode === 'bigint'");
+                    target = vNode;
+                    break;
+                default:
+                    throw new TypeError("Invalid type for vNode");
+            }
+        } else {
+            console.log('__$type$__ exists');
+            switch (vNode.__$type$__) {
+                case vdomTypes.VirtualElement:
+                    console.log('Virtual Element');
+                    break;
+                case vdomTypes.ClassComponent:
+                    console.log('Class Component');
+                    target = vNode.renderComponent();
+                    break;
+                case vdomTypes.FunctionalComponent:
+                    console.log('Functional Component');
+                    break;
+                default:
+                    throw new TypeError("Invalid value for property '__$type$__' on component");
+            }
+        }
+
+
+        return target;
+    }
+
+
+
+    return result;
+}
+
+function createVirtualDOM() {
+
+}
+
+
+
+
+
+
+// testing ================================================================================================
+// testing ================================================================================================
+// testing ================================================================================================
+
+
 const testFunc1 = function (props = {}) {
     let headerClassName = props.headerClassName ? props.headerClassName : 'app-header';
     return (
@@ -230,7 +297,7 @@ class TestClass1 extends Component {
     }
     render() {
         return (
-            $('button', {width: '3em'}, ['click me!'])
+            $('button', { width: '3em' }, ['click me!'])
         )
     }
 }
@@ -248,8 +315,8 @@ const TestClass2 = createClass(
         },
         render: function () {
             return (
-                $('div', {style: {backgroundColor: 'blue'}}, [
-                    $('div', {style: {fontColor: 'pink'}}, [])
+                $('div', { style: { backgroundColor: 'blue' } }, [
+                    $('div', { style: { fontColor: 'pink' } }, [])
                 ])
             )
         }
@@ -292,10 +359,10 @@ class App extends Component {
     }
     render() {
         return (
-            $(TestClass1, {inheritedProp: 'INHERITED PROP'}, [
+            $(TestClass1, { inheritedProp: 'INHERITED PROP' }, [
                 $(TestClass2),
                 $('div', null, [
-                    $('h1', {className: 'main-header'}, [
+                    $('h1', { className: 'main-header' }, [
                         'Application Header'
                     ])
                 ])
@@ -304,17 +371,30 @@ class App extends Component {
     }
 }
 
-let a = createVirtualElement(testFunc1);
-let b = createVirtualElement(TestClass1);
-let c = createVirtualElement(TestClass2);
-let d = createVirtualElement(NewClass1);
-console.group("createVirtualElement --> MetaComponent")
-console.dir(a.renderComponent())
-console.dir(b.renderComponent());
-console.dir(c.renderComponent());
-console.dir(d.renderComponent());
-console.groupEnd();
+// let a = createVirtualElement(testFunc1);
+// let b = createVirtualElement(TestClass1);
+// let c = createVirtualElement(TestClass2);
+// let d = createVirtualElement(NewClass1);
+// console.group("createVirtualElement --> MetaComponent")
+// console.dir(a.renderComponent())
+// console.dir(b.renderComponent());
+// console.dir(c.renderComponent());
+// console.dir(d.renderComponent());
+// console.groupEnd();
+
+// console.dir($(App).renderComponent());
 
 
-console.dir($(App).renderComponent());
 
+
+console.log(initializeVirtualDOM(
+    // $(App)               // MetaComponent
+    // 'Hello World'        // string
+    // 5                    // number
+
+
+
+    // NaN                  // NaN
+    // undefined            // undefined
+    // null                 // null
+));
