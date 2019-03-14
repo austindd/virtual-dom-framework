@@ -83,13 +83,11 @@ const propsHaveChanged = function (newProps, oldProps) {
             if (!newProps[propKeys[i]] || !oldProps[propKeys[i]]) return true; // should catch null/undefined
             else if (typeof newProps[propKeys[i]] !== typeof oldProps[propKeys[i]]) return true;
             else if (typeof newProps[propKeys[i]] === 'object') {
-                console.log('OBJECT PROP');
                 if (propsHaveChanged(newProps[propKeys[i]], oldProps[propKeys[i]]) === true) {
                     return true;
                 };
             }
             else if (newProps[propKeys[i]] != oldProps[propKeys[i]]) {
-                console.log(newProps[propKeys[i]], oldProps[propKeys[i]], "not equal");
                 return true;
             }
         };
@@ -104,21 +102,20 @@ const MetaComponent = function (args = {
     instance: null,
     virtualElement: null,
     $element: null,
-    instanceID: null,
+    metaComponentID: null,
     __$type$__: null
 }) {
     const _this = this;
     this.archetype = args.archetype;
     this.props = args.props;
     this.children = args.children;
-    this.virtualElement = null,
-    this.$element = null,
-    this.instanceID = null,
-    this.__$type$__ = null
+    this.virtualElement = args.virtualElement;
+    this.$element = args.$element;
+    this.metaComponentID = ("" + Math.random()).slice(3);
+    this.__$type$__ = args.__$type$__;
     this.name = this.archetype.name;
 }
-MetaComponent.createInstance = function (props) {
-    if (!this.__$type$__) throw new TypeError("")
+MetaComponent.prototype.createInstance = function (props = {}) {
     if (this.__$type$__ === vdomTypes.ClassComponent) {
         this.instance = new this.archetype(props);
         return this.instance;
@@ -126,9 +123,26 @@ MetaComponent.createInstance = function (props) {
         throw new TypeError("Cannot create new instance of functional component:", this.archetype);
     }
 }
-MetaComponent.renderComponent = function (props) {
-    let _renderResult = this.instance.render(props);
-
+MetaComponent.prototype.updateComponent = function (props = {}) {
+    let renderResult;
+    if (this.__$type$__ === vdomTypes.FunctionalComponent) {
+        renderResult = this.archetype(props);
+    } else if (this.__$type$__ === vdomTypes.ClassComponent) {
+        this.instance = this.createInstance(props);
+        renderResult = this.instance.render(props);
+    } else throw new TypeError("MetaComponent.__$type$__ not defined");
+    this.virtualElement = renderResult;
+    if(this.virtualElement.__$type$__ === vdomTypes.VirtualElement) {
+        console.log('Virtual Element');
+        this.virtualElement.children.push(this.children);
+    }
+    return this;
+}
+MetaComponent.prototype.renderComponent = function () {
+    if (!this.virtualElement) {
+        this.updateComponent();
+    }
+    return this.virtualElement;
 }
 
 // ============================================================================
@@ -141,7 +155,7 @@ const Component = function (props = {}) {
     this.state = {};
 }
 Component.prototype.constructor = Component;
-Component.__$type$__ = vdomTypes.ClassComponent;
+Component.prototype.__$type$__ = vdomTypes.ClassComponent;
 Component.prototype.render = () => {
     // To be defined in the component instance.
     // Initially returns undefined to throw an error if not overwritten.
@@ -163,34 +177,35 @@ const VirtualElement = function (type, props = {}, children = []) {
     this.type = type;
     this.props = props;
     this.children = children;
-    this.__$type$__ = __VdomSymbols__.VirtualElement;
+    this.__$type$__ = vdomTypes.VirtualElement;
 }
 VirtualElement.prototype.constructor = VirtualElement;
 
 function createVirtualElement(type, props = {}, children = []) {
-    if (typeof type === 'string') { return new VirtualElement(type, props, children); }
+    if (typeof type === 'string') {
+        return new VirtualElement(type, props, children);
+    }
     else if (typeof type === "function") {
         if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === vdomTypes.ClassComponent) {
             return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.ClassComponent })
-
         } else {
             return new MetaComponent({archetype: type, props: props, children: children, __$type$__: vdomTypes.FunctionalComponent})
         }
     }
 }
+const $ = createVirtualElement;
 
 // testing =============================================================================
 const testFunc1 = function (props = {}) {
     let headerClassName = props.headerClassName ? props.headerClassName : 'app-header';
     return (
-        createVirtualElement('div', { className: 'header-wrapper' }, [
-            createVirtualElement('h1', { className: headerClassName, style: { backgroundColor: 'blue' } }, [
+        $('div', { className: 'header-wrapper' }, [
+            $('h1', { className: headerClassName, style: { backgroundColor: 'blue' } }, [
                 "Header Text"
             ])
         ])
     );
 }
-
 
 
 class TestClass1 extends Component {
@@ -213,6 +228,11 @@ class TestClass1 extends Component {
     protoMethod2() {
         return 'protoMethod2 is bound to constructore';
     }
+    render() {
+        return (
+            $('button', {width: '3em'}, ['click me!'])
+        )
+    }
 }
 
 
@@ -221,12 +241,18 @@ const TestClass2 = createClass(
     function TestClass2(props) {
         Component.apply(this, arguments);
         this.props = props;
-        console.dir(this);
         this.stuff = 'newStuff';
     }, {
         myMethod1: function () {
             return this.props;
         },
+        render: function () {
+            return (
+                $('div', {style: {backgroundColor: 'blue'}}, [
+                    $('div', {style: {fontColor: 'pink'}}, [])
+                ])
+            )
+        }
     }, {
         myStaticMethod: function () {
             return this;
@@ -259,13 +285,36 @@ let NewClass1 = TestClass2.extend(
 
 
 
+class App extends Component {
+    constructor(props) {
+        super(props);
+        this.numbers = 12345;
+    }
+    render() {
+        return (
+            $(TestClass1, {inheritedProp: 'INHERITED PROP'}, [
+                $(TestClass2),
+                $('div', null, [
+                    $('h1', {className: 'main-header'}, [
+                        'Application Header'
+                    ])
+                ])
+            ])
+        )
+    }
+}
+
 let a = createVirtualElement(testFunc1);
 let b = createVirtualElement(TestClass1);
 let c = createVirtualElement(TestClass2);
 let d = createVirtualElement(NewClass1);
 console.group("createVirtualElement --> MetaComponent")
-console.dir(a);
-console.dir(b);
-console.dir(c);
-console.dir(d);
+console.dir(a.renderComponent())
+console.dir(b.renderComponent());
+console.dir(c.renderComponent());
+console.dir(d.renderComponent());
 console.groupEnd();
+
+
+console.dir($(App).renderComponent());
+
