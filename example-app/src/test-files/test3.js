@@ -138,9 +138,9 @@ MetaComponent.prototype.updateComponent = function (props = {}) {
     }
     return this;
 }
-MetaComponent.prototype.renderComponent = function () {
+MetaComponent.prototype.renderComponent = function (props = {}) {
     if (!this.virtualElement) {
-        this.updateComponent();
+        this.updateComponent(props);
     }
     return this.virtualElement;
 }
@@ -188,9 +188,9 @@ function createVirtualElement(type, props = {}, children = []) {
     }
     else if (typeof type === "function") {
         if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === vdomTypes.ClassComponent) {
-            return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.ClassComponent })
+            return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.ClassComponent });
         } else {
-            return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.FunctionalComponent })
+            return new MetaComponent({ archetype: type, props: props, children: children, __$type$__: vdomTypes.FunctionalComponent });
         }
     }
 }
@@ -220,15 +220,15 @@ function initializeVirtualDOM(rootComponent) {
             console.log('__$type$__ false');
             switch (typeof vNode) {
                 case 'string':
-                    console.log("typeof vNode === 'string'");
+                    // console.log("typeof vNode === 'string'");
                     target = vNode;
                     break;
                 case 'number':
-                    console.log("typeof vNode === 'number'");
+                    // console.log("typeof vNode === 'number'");
                     target = vNode;
                     break;
                 case 'object':
-                    console.log("typeof vNode === 'object'");
+                    // console.log("typeof vNode === 'object'");
                     if (Array.isArray(vNode)) {
                         console.log("isArray === true");
                         if (vNode.length > 0) {
@@ -242,15 +242,15 @@ function initializeVirtualDOM(rootComponent) {
                     }
                     break;
                 case 'function':
-                    console.log("typeof vNode === 'function'");
+                    // console.log("typeof vNode === 'function'");
                     target = vNode;
                     break;
                 case 'bigint':
-                    console.log("typeof vNode === 'bigint'");
+                    // console.log("typeof vNode === 'bigint'");
                     target = vNode;
                     break;
                 case 'symbol':
-                    console.log("typeof vNode === 'symbol'");
+                    // console.log("typeof vNode === 'symbol'");
                     target = vNode;
                     break;
                 default:
@@ -278,7 +278,7 @@ function initializeVirtualDOM(rootComponent) {
                     throw new TypeError("Invalid value for property '__$type$__' on component");
             }
         }
-        console.log('Target:', target);
+        // console.log('Target:', target);
         return target;
 
     }
@@ -414,6 +414,7 @@ class TestClass1 extends Component {
         this.arrowFunc = () => {
             return 'boundStaticMethod';
         }
+        console.log(this.props);
     }
 
     protoMethod1() {
@@ -426,7 +427,7 @@ class TestClass1 extends Component {
         console.log('PROPS dksoafidospahfidospafsdopi', this.props)
         let className;
         if (this.inheritedProp) {
-            className = this.ptops.inheritedProp;
+            className = this.props.inheritedProp;
         } else {
             className = 'button-wrapper';
         }
