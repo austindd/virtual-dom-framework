@@ -138,7 +138,7 @@ MetaComponent.prototype = {
         } else throw new TypeError("MetaComponent.__$type$__ not defined");
         if (renderResult === undefined) { throw new TypeError('renderResult is undefined') }
         this.componentSubTree = renderResult;
-        console.log(this.inheritedChildren);
+        // console.log(this.inheritedChildren);
         if (this.componentSubTree.__$type$__ === vdomTypes.VirtualElement) {
             _this.inheritedChildren.forEach(function (child) {
                 _this.componentSubTree.children.push(child);
@@ -152,7 +152,7 @@ MetaComponent.prototype = {
         }
         return this.componentSubTree;
     }
-    
+
 }
 
 // ============================================================================
@@ -248,10 +248,11 @@ function initializeVirtualDOM(rootComponent) {
                         } else target = [];
                     } else {
                         // console.log("isArray === false");
-                        target = Object.keys(vNode).reduce(function (res, propName) {
-                            res[propName] = vNode[propName];
-                            return res;
-                        });
+                        target = {};
+                        const propKeys = Object.keys(vNode);
+                        for (let i = 0; i < propKeys.length; i++) {
+                            target[propKeys[i]] = vNode[propKeys[i]];
+                        }
                     }
                     break;
                 case 'function':
@@ -274,12 +275,12 @@ function initializeVirtualDOM(rootComponent) {
             switch (vNode.__$type$__) {
                 case vdomTypes.VirtualElement:
                     // console.log('Virtual Element', vNode);
-                    target = createVirtualElement(
+                    console.log('vNode', vNode);
+                    target = new VirtualElement(
                         initialWalk(vNode.type), // 'type' property can contain components, so we need to walk the tree;
                         initialWalk(vNode.props),
                         initialWalk(vNode.children), // each array element parsed by the walk agorithm;
                     );
-
                     break;
                 case vdomTypes.ClassComponent:
                     // console.log('Class Component', vNode);
@@ -321,14 +322,13 @@ function initializeVirtualDOM(rootComponent) {
         // console.log('Target:', target);
         return target;
     }
-    console.dir('Result:', result);
     return result;
 }
 
 
 
 // ==================================================================================================================
-// ==============================================  CREATE VIRTUAL DOM  ==============================================
+// ============================================  RECONCILE VIRTUAL DOM  =============================================
 // ==================================================================================================================
 
 function reconcileVirtualDOM() {
@@ -339,8 +339,43 @@ function reconcileVirtualDOM() {
     console.dir('Result:', result);
     return result;
 }
+// ==================================================================================================================
+// ==========================================  END RECONCILE VIRTUAL DOM  ===========================================
+// ==================================================================================================================
 
+function prepareRenderScheme(reconciledVdom) {
+    let result;
+    result = walkSubTree(reconciledVdom);
 
+    function walkSubTree(vNode) {
+        let target;
+        if (typeof vNode === 'object') {
+            switch (vNode.__$type$__) {
+                case vdomTypes.VirtualElement:
+                    console.log('VirtualElement');
+                    target = vNode;
+                    target.children = vNode.children.map(function (child) {
+                        return walkSubTree(child);
+                    });
+                    break;
+                case vdomTypes.FunctionalComponent:
+                    console.log('FunctionalComponent');
+                    target = walkSubTree(vNode.componentSubTree);
+                    break;
+                case vdomTypes.ClassComponent:
+                    console.log('ClassComponent');
+                    target = walkSubTree(vNode.componentSubTree);
+                    break;
+                default:
+                    throw new ReferenceError('__$$type$$__ property does not exist for this virtual node');
+            }
+        } else {
+            target = vNode;
+        }
+        return target;
+    }
+    return result;
+}
 
 
 
@@ -353,10 +388,10 @@ function reconcileVirtualDOM() {
 
 
 const AppFooter = function (props = {}) {
-    let headerClassName = props.headerClassName ? props.headerClassName : 'app-header';
+    let footerClassName = props.footerClassName ? props.footerClassName : 'app-header';
     return (
-        $('div', { className: 'header-wrapper' }, [
-            $('h1', { className: headerClassName, style: { backgroundColor: 'blue' } }, [
+        $('div', { className: 'app-footer' }, [
+            $('h1', { className: footerClassName, style: { backgroundColor: 'blue' } }, [
                 "Header Text"
             ])
         ])
@@ -388,10 +423,10 @@ class AppBody extends Component {
         if (this.props.inheritedProp) {
             className = this.props.inheritedProp;
         } else {
-            className = 'button-wrapper';
+            className = 'app-body';
         }
         return (
-            $('div', { className: className, width: '3em' }, ['This is a button:'])
+            $('div', { className: className, width: '3em' })
         )
     }
 }
@@ -482,10 +517,10 @@ class App extends Component {
 // console.groupEnd();
 
 // console.dir($(App).renderComponent());
-
+let currentVirtualDOM;
 function test_initializeVirtualDOM() {
-    console.log(' ------------------  TESTING  ------------------ ');
-    initializeVirtualDOM(
+    console.log(' ----------  Initializing Virtual DOM  ----------- ');
+    currentVirtualDOM = initializeVirtualDOM(
         $(App)               // MetaComponent
         // 'Hello World'        // string
         // 5                    // number
@@ -496,16 +531,29 @@ function test_initializeVirtualDOM() {
         // null                 // null
         // undefined            // undefined
     );
+    console.log("currentVirtualDOM:\r\n", currentVirtualDOM);
+    console.log(' --------------------  DONE  --------------------- ');
+
+}
+let renderScheme;
+function test_prepareRenderScheme(virtualDomObject) {
+    console.log(' ----------  Preparing Render Scheme  ------------ ');
+
+    renderScheme = prepareRenderScheme(currentVirtualDOM);
+
+    console.log('renderScheme:\r\n', renderScheme);
     console.log(' --------------------  DONE  --------------------- ');
 }
 
 
+const testBtn1 = document.createElement('button');
+testBtn1Text = document.createTextNode('Initialize VDOM');
+testBtn1.appendChild(testBtn1Text);
+testBtn1.onclick = test_initializeVirtualDOM;
+document.body.appendChild(testBtn1);
 
-
-
-
-const myButton = document.createElement('button');
-myButtonText = document.createTextNode('Update');
-myButton.appendChild(myButtonText);
-myButton.onclick = test_initializeVirtualDOM;
-document.body.appendChild(myButton);
+const testBtn2 = document.createElement('button');
+testBtn2Text = document.createTextNode('Prepare Render Scheme');
+testBtn2.appendChild(testBtn2Text);
+testBtn2.onclick = test_prepareRenderScheme;
+document.body.appendChild(testBtn2);
