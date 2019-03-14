@@ -196,16 +196,27 @@ function createVirtualElement(type, props = {}, children = []) {
 const $ = createVirtualElement;
 
 
-function initializeVirtualDOM(rootComponent) {
-    console.log("rootComponent:",rootComponent);
-    let result;
-    result = renderTree(result, rootComponent);
 
-    function renderTree(target, vNode) {
-        if (!vNode) {console.log('!vNode'); return vNode;};
+
+
+
+
+
+
+
+function initializeVirtualDOM(rootComponent) {
+    console.dir("rootComponent:", {rootComponent});
+    let result;
+    result = walkVdomTree(rootComponent);
+
+
+    function walkVdomTree(vNode) {
+        console.dir("~~~~~~~~ vNode ~~~~~~~~ \r\n", {vNode});
+        let target;
+        if (!vNode) { console.log('!vNode'); return vNode; };
 
         if (!vNode.__$type$__) {
-            console.log('no __$type$__');
+            console.log('__$type$__ false');
             switch (typeof vNode) {
                 case 'string':
                     console.log("typeof vNode === 'string'");
@@ -213,6 +224,24 @@ function initializeVirtualDOM(rootComponent) {
                     break;
                 case 'number':
                     console.log("typeof vNode === 'number'");
+                    target = vNode;
+                    break;
+                case 'object':
+                    console.log("typeof vNode === 'object'");
+                    if (Array.isArray(vNode)) {
+                        console.log("isArray === true");
+                        if (vNode.length > 0) {
+                            vNode.forEach(function (item) {
+                                target = walkVdomTree(item);
+                            });
+                        } else target = [];
+                    } else {
+                        console.log("isArray === false");
+
+                    }
+                    break;
+                case 'function':
+                    console.log("typeof vNode === 'function'");
                     target = vNode;
                     break;
                 case 'bigint':
@@ -223,14 +252,18 @@ function initializeVirtualDOM(rootComponent) {
                     throw new TypeError("Invalid type for vNode");
             }
         } else {
-            console.log('__$type$__ exists');
+            console.log('__$type$__ true');
             switch (vNode.__$type$__) {
                 case vdomTypes.VirtualElement:
                     console.log('Virtual Element');
+                    target = {}
+                        target.type = walkVdomTree(vNode.type);
+                        target.props = vNode.props;
+                        target.children = walkVdomTree(vNode.children);
                     break;
                 case vdomTypes.ClassComponent:
                     console.log('Class Component');
-                    target = vNode.renderComponent();
+                    target = walkVdomTree(vNode.renderComponent());
                     break;
                 case vdomTypes.FunctionalComponent:
                     console.log('Functional Component');
@@ -239,13 +272,12 @@ function initializeVirtualDOM(rootComponent) {
                     throw new TypeError("Invalid value for property '__$type$__' on component");
             }
         }
-
-
+        console.log('Target:', target);
         return target;
     }
 
 
-
+    console.log('Result:', result);
     return result;
 }
 
@@ -297,7 +329,7 @@ class TestClass1 extends Component {
     }
     render() {
         return (
-            $('button', { width: '3em' }, ['click me!'])
+            $('div', { width: '3em' }, ['This is a button:'])
         )
     }
 }
@@ -316,7 +348,9 @@ const TestClass2 = createClass(
         render: function () {
             return (
                 $('div', { style: { backgroundColor: 'blue' } }, [
-                    $('div', { style: { fontColor: 'pink' } }, [])
+                    $('button', { style: { fontColor: 'pink' } }, [
+                        'click me!'
+                    ])
                 ])
             )
         }
@@ -367,7 +401,7 @@ class App extends Component {
                     ])
                 ])
             ])
-        )
+        );
     }
 }
 
@@ -386,15 +420,14 @@ class App extends Component {
 
 
 
-
 console.log(initializeVirtualDOM(
-    // $(App)               // MetaComponent
+    $(App)               // MetaComponent
     // 'Hello World'        // string
     // 5                    // number
-
-
-
+    // BigInt(515556666644885588)        // bigint
+    // {a:1}                // object !isArray
+    // [1, 2, 3]            // object isArray
     // NaN                  // NaN
-    // undefined            // undefined
     // null                 // null
+    // undefined            // undefined
 ));
