@@ -248,6 +248,10 @@ function initializeVirtualDOM(rootComponent) {
                     console.log("typeof vNode === 'bigint'");
                     target = vNode;
                     break;
+                case 'symbol':
+                    console.log("typeof vNode === 'symbol'");
+                    target = vNode;
+                    break;
                 default:
                     throw new TypeError("Invalid type for vNode");
             }
