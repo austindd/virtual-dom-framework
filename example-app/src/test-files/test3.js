@@ -207,13 +207,13 @@ const $ = createVirtualElement;
 function initializeVirtualDOM(rootComponent) {
     console.dir("rootComponent:", {rootComponent});
     let result;
-    result = walkVdomTree(rootComponent);
+    result = initialWalk(rootComponent);
 
 
-    function walkVdomTree(vNode) {
+    function initialWalk(vNode) {
         console.dir("~~~~~~~~ vNode ~~~~~~~~ \r\n", {vNode});
         let target;
-        if (!vNode) { console.log('!vNode'); return vNode; };
+        if (vNode === undefined) { console.log('!vNode'); return vNode; };
 
         if (!vNode.__$type$__) {
             console.log('__$type$__ false');
@@ -232,12 +232,12 @@ function initializeVirtualDOM(rootComponent) {
                         console.log("isArray === true");
                         if (vNode.length > 0) {
                             vNode.forEach(function (item) {
-                                target = walkVdomTree(item);
+                                target = initialWalk(item);
                             });
                         } else target = [];
                     } else {
                         console.log("isArray === false");
-
+                        target = vNode;
                     }
                     break;
                 case 'function':
@@ -257,16 +257,17 @@ function initializeVirtualDOM(rootComponent) {
                 case vdomTypes.VirtualElement:
                     console.log('Virtual Element');
                     target = {}
-                        target.type = walkVdomTree(vNode.type);
-                        target.props = vNode.props;
-                        target.children = walkVdomTree(vNode.children);
+                        target.type = initialWalk(vNode.type);
+                        target.props = vNode.props ? vNode.props : {};
+                        target.children = initialWalk(vNode.children);
                     break;
                 case vdomTypes.ClassComponent:
                     console.log('Class Component');
-                    target = walkVdomTree(vNode.renderComponent());
+                    target = initialWalk(vNode.renderComponent());
                     break;
                 case vdomTypes.FunctionalComponent:
                     console.log('Functional Component');
+                    target = initialWalk(vNode.renderComponent());
                     break;
                 default:
                     throw new TypeError("Invalid value for property '__$type$__' on component");
@@ -274,10 +275,11 @@ function initializeVirtualDOM(rootComponent) {
         }
         console.log('Target:', target);
         return target;
+
     }
 
 
-    console.log('Result:', result);
+    console.dir('Result:', result);
     return result;
 }
 
@@ -419,7 +421,7 @@ class App extends Component {
 // console.dir($(App).renderComponent());
 
 
-
+console.log(null === null);
 console.log(initializeVirtualDOM(
     $(App)               // MetaComponent
     // 'Hello World'        // string
