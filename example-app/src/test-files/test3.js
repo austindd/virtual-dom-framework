@@ -5,9 +5,24 @@ const updateVirtualDOM = function () {
 };
 // ====== PLEASE REMOVE FUNCTION ABOVE ======
 
+// const vdomTypes = {
+//     VirtualElement: Symbol('VirtualElement'),
+//     Component: Symbol('ClassComponent'),
+//     ClassComponent: Symbol('ClassComponent'),
+//     FunctionalComponent: Symbol('FunctionalComponent'),
+//     MetaComponent: Symbol('MetaComponent')
+// }
+
+const vdomTypes = {
+    VirtualElement: { virtualElement: true },
+    Component: { component: true },
+    ClassComponent: { classComponent: true },
+    FunctionalComponent: { functionalComponent: true },
+    MetaComponent: { metaComponent: true }
+}
 
 
-
+const _stuff = {};
 
 
 const extendObject = function (targetObj, newObj) {
@@ -36,29 +51,6 @@ const createClass = function (SuperClass, ClassConstructor, protoMethods, static
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-const vdomTypes = {
-    VirtualElement: Symbol('VirtualElement'),
-    Component: Symbol('ClassComponent'),
-    ClassComponent: Symbol('ClassComponent'),
-    FunctionalComponent: Symbol('FunctionalComponent'),
-    MetaComponent: Symbol('MetaComponent')
-}
-
-const setType = function (obj, type) {
-    obj.__$type$__ = type;
-}
 
 const declare = {
     classComponent: function (component) {
@@ -216,7 +208,6 @@ const $ = createVirtualElement;
 // Special case of reconcileVirtualDOM, performed on initial render of application.
 // Omits comparison to previous virtual DOM object (since it doesn't exist yet). 
 function initializeVirtualDOM(rootComponent) {
-    console.dir("rootComponent:", { rootComponent });
     let result;
     result = initialWalk(rootComponent);
 
@@ -229,14 +220,6 @@ function initializeVirtualDOM(rootComponent) {
         if (!vNode.__$type$__) {
             // console.log('__$type$__ false');
             switch (typeof vNode) {
-                case 'string':
-                    // console.log("typeof vNode === 'string'");
-                    target = vNode;
-                    break;
-                case 'number':
-                    // console.log("typeof vNode === 'number'");
-                    target = vNode;
-                    break;
                 case 'object':
                     // console.log("typeof vNode === 'object'");
                     if (Array.isArray(vNode)) {
@@ -255,27 +238,14 @@ function initializeVirtualDOM(rootComponent) {
                         }
                     }
                     break;
-                case 'function':
-                    // console.log("typeof vNode === 'function'");
-                    target = vNode;
-                    break;
-                case 'bigint':
-                    // console.log("typeof vNode === 'bigint'");
-                    target = vNode;
-                    break;
-                case 'symbol':
-                    // console.log("typeof vNode === 'symbol'");
-                    target = vNode;
-                    break;
                 default:
-                    throw new TypeError("Invalid type for vNode");
+                    target = vNode;
             }
         } else {
             // console.log('__$type$__ true');
             switch (vNode.__$type$__) {
                 case vdomTypes.VirtualElement:
                     // console.log('Virtual Element', vNode);
-                    console.log('vNode', vNode);
                     target = new VirtualElement(
                         initialWalk(vNode.type), // 'type' property can contain components, so we need to walk the tree;
                         initialWalk(vNode.props),
@@ -331,12 +301,22 @@ function initializeVirtualDOM(rootComponent) {
 // ============================================  RECONCILE VIRTUAL DOM  =============================================
 // ==================================================================================================================
 
-function reconcileVirtualDOM() {
-    console.dir("rootComponent:", { rootComponent });
+function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
     let result;
+    if (!oldVirtualDOM) {
+        console.log("!oldVirtualDOM");
+        result = (newVirtualDOM);
+    } else {
+        result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
+    }
+    function walkAndReconcile(newNode, oldNode) {
+        let target;
+        if (newNode === undefined) { console.log("!newNode"); return newNode };
+        if (newNode === null) { console.log("newNode is null"); return newNode };
 
+    }
 
-    console.dir('Result:', result);
+    console.log('Result:', result);
     return result;
 }
 // ==================================================================================================================
@@ -352,18 +332,18 @@ function prepareRenderScheme(reconciledVdom) {
         if (typeof vNode === 'object') {
             switch (vNode.__$type$__) {
                 case vdomTypes.VirtualElement:
-                    console.log('VirtualElement');
+                    // console.log('VirtualElement');
                     target = vNode;
                     target.children = vNode.children.map(function (child) {
                         return walkSubTree(child);
                     });
                     break;
                 case vdomTypes.FunctionalComponent:
-                    console.log('FunctionalComponent');
+                    // console.log('FunctionalComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
                 case vdomTypes.ClassComponent:
-                    console.log('ClassComponent');
+                    // console.log('ClassComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
                 default:
@@ -481,16 +461,14 @@ let NewClass1 = AppHeader.extend(
 )
 
 
-
-
-class App extends Component {
+class App1 extends Component {
     constructor(props) {
         super(props);
         this.numbers = 12345;
     }
     render() {
         return (
-            $('div', { className: 'App' }, [
+            $('div', { className: 'App1' }, [
                 $(AppHeader),
                 $(AppBody, { inheritedProp: 'INHERITED PROP' }, [
                     $('div', { className: 'body-content' }, [
@@ -505,45 +483,76 @@ class App extends Component {
     }
 }
 
-// let a = createVirtualElement(AppFooter);
-// let b = createVirtualElement(AppBody);
-// let c = createVirtualElement(AppHeader);
-// let d = createVirtualElement(NewClass1);
-// console.group("createVirtualElement --> MetaComponent")
-// console.dir(a.renderComponent())
-// console.dir(b.renderComponent());
-// console.dir(c.renderComponent());
-// console.dir(d.renderComponent());
-// console.groupEnd();
+class App2 extends Component {
+    constructor(props) {
+        super(props);
+        this.numbers = 12345;
+    }
+    render() {
+        return (
+            $('div', { className: 'App2' }, [
+                $(AppHeader),
+                $(AppBody, { inheritedProp: 'PROP CHANGED' }, [
+                    $('div', { className: 'body-content' }, [
+                        $('div', { className: 'row' }, ['This is row 4']),
+                        $('div', { className: 'row' }, ['This is row 5']),
+                        $('div', { className: 'row' }, ['This is row 6']),
+                        $('div', { className: 'row' }, ['This is row 7']),
+                    ]),
+                ]),
+                $(AppFooter, { stuff: 'stuff' }, ['text'])
+            ])
+        );
+    }
+}
 
-// console.dir($(App).renderComponent());
+
+let rootComponent = $(App1);
+let ROOT = document.getElementById('ROOT');
+
 let currentVirtualDOM;
+let newVirtualDOM;
+let renderScheme;
+let oldRenderScheme;
+let newRenderScheme;
+
 function test_initializeVirtualDOM() {
     console.log(' ----------  Initializing Virtual DOM  ----------- ');
-    currentVirtualDOM = initializeVirtualDOM(
-        $(App)               // MetaComponent
-        // 'Hello World'        // string
-        // 5                    // number
-        // BigInt(515556666644885588)        // bigint
-        // {a:1}                // object !isArray
-        // [1, 2, 3]            // object isArray
-        // NaN                  // NaN
-        // null                 // null
-        // undefined            // undefined
-    );
-    console.log("currentVirtualDOM:\r\n", currentVirtualDOM);
+    currentVirtualDOM = initializeVirtualDOM($(App1));
+    console.log("currentVirtualDOM:\r\n");
+    console.log(currentVirtualDOM);
     console.log(' --------------------  DONE  --------------------- ');
-
 }
-let renderScheme;
+
 function test_prepareRenderScheme(virtualDomObject) {
     console.log(' ----------  Preparing Render Scheme  ------------ ');
 
     renderScheme = prepareRenderScheme(currentVirtualDOM);
 
-    console.log('renderScheme:\r\n', renderScheme);
+    console.log('renderScheme:\r\n');
+    console.log(renderScheme);
     console.log(' --------------------  DONE  --------------------- ');
 }
+
+function test_reconcileVirtualDOM() {
+    console.log(' ----------  Preparing Render Scheme  ------------ ');
+    currentVirtualDOM = initializeVirtualDOM($(App1));
+    newVirtualDOM = initializeVirtualDOM($(App2));
+    oldRenderScheme = prepareRenderScheme(currentVirtualDOM);
+    newRenderScheme = prepareRenderScheme(newVirtualDOM);
+
+    console.log(currentVirtualDOM);
+    console.log(newVirtualDOM);
+
+
+    console.log('oldRenderScheme:\r\n');
+    console.log(oldRenderScheme);
+    console.log('newRenderScheme:\r\n');
+    console.log(newRenderScheme);
+
+    console.log(' --------------------  DONE  --------------------- ');
+}
+
 
 
 const testBtn1 = document.createElement('button');
@@ -557,3 +566,5 @@ testBtn2Text = document.createTextNode('Prepare Render Scheme');
 testBtn2.appendChild(testBtn2Text);
 testBtn2.onclick = test_prepareRenderScheme;
 document.body.appendChild(testBtn2);
+
+test_reconcileVirtualDOM()
