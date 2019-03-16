@@ -62,27 +62,6 @@ const declare = {
 }
 
 
-const propsHaveChanged = function (newProps, oldProps) {
-    if (!oldProps && newProps) return true;
-    if (oldProps && !newProps) return true;
-    if (oldProps && newProps) {
-        const props = Object.assign({}, newProps, oldProps);
-        let propKeys = Object.keys(props);
-        for (let i = 0; i < propKeys.length; i++) {
-            if (!newProps[propKeys[i]] || !oldProps[propKeys[i]]) return true; // should catch null/undefined
-            else if (typeof newProps[propKeys[i]] !== typeof oldProps[propKeys[i]]) return true;
-            else if (typeof newProps[propKeys[i]] === 'object') {
-                if (propsHaveChanged(newProps[propKeys[i]], oldProps[propKeys[i]]) === true) {
-                    return true;
-                };
-            }
-            else if (newProps[propKeys[i]] != oldProps[propKeys[i]]) {
-                return true;
-            }
-        };
-    }
-    return false;
-}
 
 const MetaComponent = function (args = {
     archetype: null,
@@ -109,7 +88,9 @@ const MetaComponent = function (args = {
 MetaComponent.prototype = {
     createInstance: function (props = {}) {
         if (this.__$type$__ === vdomTypes.ClassComponent) {
-            return new this.archetype(props);
+            let instance = new this.archetype(props);
+            instance.instanceID = ("" + Math.random()).slice(3);
+            return instance;
         } else if (this.__$type$__ === vdomTypes.FunctionalComponent) {
             throw new TypeError("Cannot create new instance of functional component:", this.archetype);
         }
@@ -201,7 +182,27 @@ const $ = createVirtualElement;
 
 
 
-
+const propsHaveChanged = function (newProps, oldProps) {
+    if (!oldProps && newProps) return true;
+    if (oldProps && !newProps) return true;
+    if (oldProps && newProps) {
+        const props = Object.assign({}, newProps, oldProps);
+        let propKeys = Object.keys(props);
+        for (let i = 0; i < propKeys.length; i++) {
+            if (!newProps[propKeys[i]] || !oldProps[propKeys[i]]) return true; // should catch null/undefined
+            else if (typeof newProps[propKeys[i]] !== typeof oldProps[propKeys[i]]) return true;
+            else if (typeof newProps[propKeys[i]] === 'object') {
+                if (propsHaveChanged(newProps[propKeys[i]], oldProps[propKeys[i]]) === true) {
+                    return true;
+                };
+            }
+            else if (newProps[propKeys[i]] != oldProps[propKeys[i]]) {
+                return true;
+            }
+        };
+    }
+    return false;
+}
 
 
 
@@ -301,6 +302,8 @@ function initializeVirtualDOM(rootComponent) {
 // ============================================  RECONCILE VIRTUAL DOM  =============================================
 // ==================================================================================================================
 
+
+
 function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
     let result;
     if (!oldVirtualDOM) {
@@ -313,6 +316,103 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
         let target;
         if (newNode === undefined) { console.log("!newNode"); return newNode };
         if (newNode === null) { console.log("newNode is null"); return newNode };
+        if (typeof newNode !== typeof oldNode) { return newNode; }
+
+        if (!newNode.__$type$__) {
+            // Fill out non-component value handling here...
+        } else {
+            switch (newNode.__$type$__) {
+                case vdomTypes.VirtualElement:
+                    if (newNode === oldNode) {
+
+                    }
+                    break;
+                case vdomTypes.ClassComponent:
+                    if (!vNode.componentSubTree) {
+
+                    } else {
+
+                    }
+                    break;
+                case vdomTypes.FunctionalComponent:
+                    if (!vNode.componentSubTree) {
+
+                        if (!vNode.componentSubTree) {
+
+                        } else {
+
+                        }
+                    } else {
+
+                    }
+                    break;
+                default:
+                    throw new TypeError("Invalid value for property '__$type$__' on component");
+            }
+
+        }
+        return target;
+
+
+
+        // ========================  Helper methods for Reconciler  ========================
+
+        function reconcileChildren(newChildren, oldChildren) {
+            // determine which node's 'children' array has the most children, so we can iterate through ALL of them.
+            const maxLength = (newChildren.length >= oldChildren.length ? newChildren.length : oldChildren.length);
+            const result = [];
+            for (let i = 0; i < maxLength; i++) {
+                const child = walkAndReconcile(newNode.children[i], oldNode.children[i]);
+                result.push(child);
+            }
+            return result;
+        }
+
+        function reconcileVirtualElements(newNode, oldNode) {
+            // Input is expected to be VirtualElement instances for both arguments.
+            // Check virtual elements themselves
+            if (!newNode && oldNode) { return oldNode; }
+            else if (!oldNode && newNode) { return newNode; }
+            else if (typeof newNode !== typeof oldNode) { return newNode; }
+
+            // Compare the 'type' properties of virtual elements
+            if (typeof newNode.type !== typeof oldNode.type) { return newNode; }
+            if (typeof newNode.type === 'string') {
+                if (newNode.type === oldNode.type) { // the node types look the same!
+                    // So let's check the props
+                    let updatedNode;
+                    if (propsHaveChanged(newNode.props, oldNode.props) === true) { updatedNode = newNode; }
+                    // if props have changed, then we will use the new node, but we still need to compare children.
+                    else { updatedNode = oldNode }
+
+                    updatedNode.children = reconcileChildren(newNode.children, oldNode.children);
+                    return updatedNode;
+                }
+                else { return newNode; }
+            }
+            if (typeof newNode.type === 'object') { // Possibly a MetaComponent object
+                if (newNode.type.__$type$__) {
+                    if (!oldNode.type.__$type$__ || newNode.type.__$type$__ !== oldNode.type.__$type$__) { return newNode; }
+                    else { return walkAndReconcile (newNode.type, oldNode.type); }
+                } else { throw new Error('Unidentified VDOM Object in VirtualElement.type'); }
+            }
+            if (propsHaveChanged(newNode.props, oldNode.props) === true) {
+                return newNode;
+            } else return oldNode;
+        }
+        function reconcileClassComponents(newNode, oldNode) {
+            if (propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === true) {
+                return newNode;
+            } else return oldNode;
+        }
+        function reconcileFunctionalComponents(newNode, oldNode) {
+            if (propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === true) {
+                return newNode;
+            } else return oldNode;
+        }
+
+
+
 
     }
 
