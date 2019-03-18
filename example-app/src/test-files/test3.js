@@ -114,16 +114,16 @@ MetaComponent.prototype = {
         this.componentSubTree = renderResult;
         // console.log(this.inheritedChildren);
         if (this.componentSubTree.__$type$__ === vdomTypes.VirtualElement) {
-            _this.inheritedChildren.forEach(function (child) {
-                _this.componentSubTree.children.push(child);
-            });
+            for (let i = 0; i < this.inheritedChildren.length; i++) {
+                this.componentSubTree.children.push(this.inheritedChildren[i])
+            }
         } else if (
             this.componentSubTree.__$type$__ === vdomTypes.ClassComponent
             || this.componentSubTree.__$type$__ === vdomTypes.FunctionalComponent
         ) {
-            _this.inheritedChildren.forEach(function (child) {
-                _this.componentSubTree.inheritedChildren.push(child);
-            });
+            for (let i = 0; i < this.inheritedChildren.length; i++) {
+                this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i])
+            }
         }
         this.initialized = true;
     },
@@ -325,7 +325,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
         let target;
 
         if (!newNode.__$type$__) {
-            console.log('No __$type$__');
             // Fill out non-component value handling here...
             if (!oldNode || typeof newNode !== typeof oldNode) {
                 target = newNode;
@@ -363,7 +362,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     }
             }
         } else {
-            console.log('__&type&__ exists');
             switch (newNode.__$type$__) {
                 case vdomTypes.VirtualElement:
                     target = reconcileVirtualElements(newNode, oldNode);
@@ -382,13 +380,10 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
         // console.log('target:', target);
         return target;
 
-
-
         // ========================  Helper methods for Reconciler  ========================
 
         function reconcileChildren(newChildren, oldChildren) {
             let result;
-
             if (!oldChildren) {
                 result = newChildren.map(function (child) {
                     return walkAndReconcile(child, undefined);
@@ -407,12 +402,10 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
             }
             return result;
         }
-
         function reconcileVirtualElements(newNode, oldNode) {
             // console.log(newNode, oldNode);
             // Input is expected to be VirtualElement instances for both arguments.
             let resultNode;
-
             if (
                 !oldNode
                 || typeof newNode !== typeof oldNode
@@ -431,7 +424,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                         resultNode.children = reconcileChildren(newNode.children, oldNode.children);
                     }
                     else { resultNode = oldNode; }
-
                 }
                 else { // the node types look the same!
                     // So let's check the props!
@@ -442,20 +434,16 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     }
                     // if props have changed, then we will use the new node, but we still need to compare children.
                     else { resultNode = oldNode; }
-
                 }
             } 
             return resultNode;
         }
         function reconcileClassComponents(newNode, oldNode) {
             let resultNode;
-            if (!oldNode
-                || typeof newNode !== typeof oldNode
-            ) {
+            if (!oldNode || typeof newNode !== typeof oldNode) {
                 resultNode = newNode;
                 resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
                 resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, undefined);
-
             }
             else if (
                 !!oldNode
@@ -468,19 +456,14 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                 resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
                 resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, oldNode.componentSubTree);
             }
-
             return resultNode;
         }
         function reconcileFunctionalComponents(newNode, oldNode) {
-            // console.log(newNode, oldNode);
             let resultNode;
-            if (!oldNode
-                || typeof newNode !== typeof oldNode
-            ) {
+            if (!oldNode || typeof newNode !== typeof oldNode) {
                 resultNode = newNode;
                 resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
-                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, undefined);
-
+                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, undefined)
             }
             else if (
                 newNode.archetype === oldNode.archetype
@@ -492,22 +475,16 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                 resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
                 resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, oldNode.componentSubTree);
             }
-            // console.log(resultNode)
             return resultNode;
-
         }
-
-
     }
-
-    console.log('Result:', result);
     return result;
 }
 // ==================================================================================================================
 // ==========================================  END RECONCILE VIRTUAL DOM  ===========================================
 // ==================================================================================================================
 
-function prepareRenderScheme(reconciledVdom) {
+function prepareRenderScheme(reconciledVdom) { // Constructs the 
     let result;
     result = walkSubTree(reconciledVdom);
 
@@ -539,6 +516,24 @@ function prepareRenderScheme(reconciledVdom) {
         return target;
     }
     return result;
+}
+// ======================================================================================
+
+
+function isCustomProp(name) {
+    return false; // for later use;
+}
+function setBooleanProp($target, propName, value) {
+    if (value) {
+        $target.setAttribute(propName, value);
+        $target[propName] = true;
+    }else {
+        $target[propName = false];
+    }
+}
+function removeBooleanProp ($target, propName) {
+    $target.removeAttribute(propName);
+    $target[propName] = false;
 }
 
 
@@ -713,63 +708,67 @@ function test_initializeVirtualDOM() {
 
 function test_prepareRenderScheme(virtualDomObject) {
     console.log(' ----------  Preparing Render Scheme  ------------ ');
-
     renderScheme = prepareRenderScheme(currentVirtualDOM);
-
     console.log('renderScheme:\r\n');
     console.log(renderScheme);
     console.log(' --------------------  DONE  --------------------- ');
 }
 
 function test_reconcileVirtualDOM() {
-    console.log(' ----------  Preparing Render Scheme  ------------ ');
+    console.log(' --------  Testing Reconciler Funciton  ---------- ');
     currentVirtualDOM = reconcileVirtualDOM($(App1));
     oldRenderScheme = prepareRenderScheme(currentVirtualDOM);
-
-    console.log('OLD:', currentVirtualDOM);
-
-
-    console.log('oldRenderScheme:\r\n');
-    console.log(oldRenderScheme);
-    console.log('newRenderScheme:\r\n');
-    console.log(newRenderScheme);
+    // console.log('OLD:', currentVirtualDOM);
+    console.log('oldRenderScheme:\r\n', oldRenderScheme);
 
     let reconciled = reconcileVirtualDOM($(App2), currentVirtualDOM);
-
     console.log(
         '----- RECONCILED VIRTUAL DOM -----\r\n',
         reconciled,
         '\r\n----------------------------------'
     );
-    console.log('FINAL RENDER SCHEME:', prepareRenderScheme(reconciled));
-
+    console.log('FINAL RENDER SCHEME:\r\n', prepareRenderScheme(reconciled));
     console.log(' --------------------  DONE  --------------------- ');
 }
 
+let test_interface = document.createElement('div');
+test_interface.id = "test-interface";
+document.body.appendChild(test_interface);
 
 const row1 = document.createElement('div');
+row1.id = "row1";
 const testBtn1 = document.createElement('button');
 testBtn1Text = document.createTextNode('Initialize VDOM');
 testBtn1.appendChild(testBtn1Text);
 testBtn1.onclick = test_initializeVirtualDOM;
-document.body.appendChild(testBtn1);
+row1.appendChild(testBtn1);
+test_interface.appendChild(row1);
 
 const row2 = document.createElement('div');
+row2.id = "row2";
 const testBtn2 = document.createElement('button');
 testBtn2Text = document.createTextNode('Prepare Render Scheme');
 testBtn2.appendChild(testBtn2Text);
 testBtn2.onclick = test_prepareRenderScheme;
-document.body.appendChild(testBtn2);
+row2.appendChild(testBtn2);
+test_interface.appendChild(row2);
 
 const row3 = document.createElement('div');
+row3.id = "row3";
 const testBtn3 = document.createElement('button');
 testBtn3Text = document.createTextNode('Reconcile VDOM');
 testBtn3.appendChild(testBtn3Text);
 testBtn3.onclick = test_reconcileVirtualDOM;
-document.body.appendChild(testBtn3);
+row3.appendChild(testBtn3);
+test_interface.appendChild(row3);
 
 
 
-
-
-
+console.log(document.body.childNodes);
+ 
+if (module.hot) {
+    module.hot.dispose(function () {
+        test_interface.remove();
+    });
+    module.hot.accept();
+}

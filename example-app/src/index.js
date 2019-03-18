@@ -27,7 +27,7 @@ if (module.hot) {
     module.hot.dispose(function () {
         ROOT.remove();
         console.clear();
-    })
+    });
     module.hot.accept();
 }
 
