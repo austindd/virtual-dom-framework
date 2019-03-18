@@ -102,6 +102,7 @@ MetaComponent.prototype = {
         if (this.__$type$__ === vdomTypes.FunctionalComponent) {
             this.inheritedProps = props;
             this.inheritedChildren = children;
+            this.instance = null;
             renderResult = this.archetype(props);
         } else if (this.__$type$__ === vdomTypes.ClassComponent) {
             this.inheritedProps = props
@@ -116,6 +117,13 @@ MetaComponent.prototype = {
             _this.inheritedChildren.forEach(function (child) {
                 _this.componentSubTree.children.push(child);
             });
+        } else if (
+            this.componentSubTree.__$type$__ === vdomTypes.ClassComponent
+            || this.componentSubTree.__$type$__ === vdomTypes.FunctionalComponent
+        ) {
+            _this.inheritedChildren.forEach(function (child) {
+                _this.componentSubTree.inheritedChildren.push(child);
+            });
         }
         this.initialized = true;
     },
@@ -125,7 +133,6 @@ MetaComponent.prototype = {
         }
         return this.componentSubTree;
     }
-
 }
 
 // ============================================================================
@@ -222,7 +229,7 @@ function initializeVirtualDOM(rootComponent) {
             // console.log('__$type$__ false');
             switch (typeof vNode) {
                 case 'object':
-                    // console.log("typeof vNode === 'object'");
+                    // console.log("typeof vNode === 'object'", vNode);
                     if (Array.isArray(vNode)) {
                         // console.log("isArray === true");
                         if (vNode.length > 0) {
@@ -306,51 +313,73 @@ function initializeVirtualDOM(rootComponent) {
 
 function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
     let result;
-    if (!oldVirtualDOM) {
-        console.log("!oldVirtualDOM");
-        result = (newVirtualDOM);
-    } else {
-        result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
-    }
+    // if (!oldVirtualDOM) {
+    //     console.log("!oldVirtualDOM");
+    //     result = (newVirtualDOM);
+    // } else {
+    //     result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
+    //     // console.log(result);
+    // }
+    result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
     function walkAndReconcile(newNode, oldNode) {
         let target;
-        if (newNode === undefined) { console.log("!newNode"); return newNode };
-        if (newNode === null) { console.log("newNode is null"); return newNode };
-        if (typeof newNode !== typeof oldNode) { return newNode; }
 
         if (!newNode.__$type$__) {
+            console.log('No __$type$__');
             // Fill out non-component value handling here...
-        } else {
-            switch (newNode.__$type$__) {
-                case vdomTypes.VirtualElement:
-                    if (newNode === oldNode) {
-
-                    }
-                    break;
-                case vdomTypes.ClassComponent:
-                    if (!vNode.componentSubTree) {
-
-                    } else {
-
-                    }
-                    break;
-                case vdomTypes.FunctionalComponent:
-                    if (!vNode.componentSubTree) {
-
-                        if (!vNode.componentSubTree) {
-
-                        } else {
-
+            if (!oldNode || typeof newNode !== typeof oldNode) {
+                target = newNode;
+            }
+            switch (typeof newNode) {
+                case "object":
+                    if (Array.isArray(newNode) === true) {
+                        console.log('--- non-component array ??');
+                        if (Array.isArray(oldNode) === false) { target = newNode; }
+                        else {
+                            target = [];
+                            const maxLength = (newNode.length >= oldNode.length ? newNode.length : oldNode.length);
+                            for (let i; i < maxLength; i++) {
+                                const item = walkAndReconcile(newNode[i], oldNode[i]);
+                                if (!!item) {
+                                    target.push(item);
+                                }
+                            }
                         }
                     } else {
+                        // regular objects:
+                        if (Array.isArray(oldNode) === true) { target = newNode; }
+                        target = {};
+                        const props = Object.assign({}, newNode, oldNode);
+                        const propKeys = Object.keys(props);
+                        for (let i = 0; i < propKeys.length; i++) {
+                            target[propKeys[i]] = walkAndReconcile(newNode[propKeys[i]], oldNode[propKeys[i]]);
+                        }
 
                     }
+                    break;
+                default:
+                    if (newNode !== oldNode) {
+                        target = newNode;
+                    }
+            }
+        } else {
+            console.log('__&type&__ exists');
+            switch (newNode.__$type$__) {
+                case vdomTypes.VirtualElement:
+                    target = reconcileVirtualElements(newNode, oldNode);
+                    break;
+                case vdomTypes.ClassComponent:
+                    target = reconcileClassComponents(newNode, oldNode)
+                    break;
+                case vdomTypes.FunctionalComponent:
+                    target = reconcileFunctionalComponents(newNode, oldNode);
                     break;
                 default:
                     throw new TypeError("Invalid value for property '__$type$__' on component");
             }
 
         }
+        // console.log('target:', target);
         return target;
 
 
@@ -358,60 +387,115 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
         // ========================  Helper methods for Reconciler  ========================
 
         function reconcileChildren(newChildren, oldChildren) {
-            // determine which node's 'children' array has the most children, so we can iterate through ALL of them.
-            const maxLength = (newChildren.length >= oldChildren.length ? newChildren.length : oldChildren.length);
-            const result = [];
-            for (let i = 0; i < maxLength; i++) {
-                const child = walkAndReconcile(newNode.children[i], oldNode.children[i]);
-                result.push(child);
+            let result;
+
+            if (!oldChildren) {
+                result = newChildren.map(function (child) {
+                    return walkAndReconcile(child, undefined);
+                });
+            } else {
+                // determine which node's 'children' array has the most children, so we can iterate through ALL of them.
+                const maxLength = (newChildren.length >= oldChildren.length ? newChildren.length : oldChildren.length);
+                result = [];
+                for (let i = 0; i < maxLength; i++) {
+                    const child = walkAndReconcile(newChildren[i], oldChildren[i]);
+                    if (child) { // undefined children should not be pushed to the new children array.
+                        result.push(child);
+                    }
+                }
+
             }
             return result;
         }
 
         function reconcileVirtualElements(newNode, oldNode) {
+            // console.log(newNode, oldNode);
             // Input is expected to be VirtualElement instances for both arguments.
-            // Check virtual elements themselves
-            if (!newNode && oldNode) { return oldNode; }
-            else if (!oldNode && newNode) { return newNode; }
-            else if (typeof newNode !== typeof oldNode) { return newNode; }
+            let resultNode;
 
-            // Compare the 'type' properties of virtual elements
-            if (typeof newNode.type !== typeof oldNode.type) { return newNode; }
-            if (typeof newNode.type === 'string') {
-                if (newNode.type === oldNode.type) { // the node types look the same!
-                    // So let's check the props
-                    let updatedNode;
-                    if (propsHaveChanged(newNode.props, oldNode.props) === true) { updatedNode = newNode; }
-                    // if props have changed, then we will use the new node, but we still need to compare children.
-                    else { updatedNode = oldNode }
+            if (
+                !oldNode
+                || typeof newNode !== typeof oldNode
+                || typeof newNode.type !== typeof oldNode.type
+            ) {
+                resultNode = newNode;
+                resultNode.children = reconcileChildren(newNode.children, undefined);
+            }
+            else {
+                if (typeof newNode.type === 'string') {
+                    if (
+                        newNode.type !== oldNode.type
+                        || propsHaveChanged(newNode.props, oldNode.props) === true
+                    ) {
+                        resultNode = newNode;
+                        resultNode.children = reconcileChildren(newNode.children, oldNode.children);
+                    }
+                    else { resultNode = oldNode; }
 
-                    updatedNode.children = reconcileChildren(newNode.children, oldNode.children);
-                    return updatedNode;
                 }
-                else { return newNode; }
-            }
-            if (typeof newNode.type === 'object') { // Possibly a MetaComponent object
-                if (newNode.type.__$type$__) {
-                    if (!oldNode.type.__$type$__ || newNode.type.__$type$__ !== oldNode.type.__$type$__) { return newNode; }
-                    else { return walkAndReconcile (newNode.type, oldNode.type); }
-                } else { throw new Error('Unidentified VDOM Object in VirtualElement.type'); }
-            }
-            if (propsHaveChanged(newNode.props, oldNode.props) === true) {
-                return newNode;
-            } else return oldNode;
+                else { // the node types look the same!
+                    // So let's check the props!
+                    if (propsHaveChanged(newNode.props, oldNode.props) === true) {
+                        resultNode = newNode;
+                        // resultNode.type = walkAndReconcile(newNode.type, oldNode.type);
+                        resultNode.children = reconcileChildren(newNode.children, oldNode.children);
+                    }
+                    // if props have changed, then we will use the new node, but we still need to compare children.
+                    else { resultNode = oldNode; }
+
+                }
+            } 
+            return resultNode;
         }
         function reconcileClassComponents(newNode, oldNode) {
-            if (propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === true) {
-                return newNode;
-            } else return oldNode;
+            let resultNode;
+            if (!oldNode
+                || typeof newNode !== typeof oldNode
+            ) {
+                resultNode = newNode;
+                resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
+                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, undefined);
+
+            }
+            else if (
+                !!oldNode
+                && typeof newNode === typeof oldNode
+                && newNode.archetype === oldNode.archetype
+                && propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === false
+            ) { resultNode = oldNode; }
+            else {
+                resultNode = newNode;
+                resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
+                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, oldNode.componentSubTree);
+            }
+
+            return resultNode;
         }
         function reconcileFunctionalComponents(newNode, oldNode) {
-            if (propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === true) {
-                return newNode;
-            } else return oldNode;
+            // console.log(newNode, oldNode);
+            let resultNode;
+            if (!oldNode
+                || typeof newNode !== typeof oldNode
+            ) {
+                resultNode = newNode;
+                resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
+                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, undefined);
+
+            }
+            else if (
+                newNode.archetype === oldNode.archetype
+                && propsHaveChanged(newNode.inheritedProps, oldNode.inheritedProps) === false
+            ) {
+                resultNode = oldNode;
+            } else {
+                resultNode = newNode;
+                resultNode.updateComponent(resultNode.inheritedProps, resultNode.inheritedChildren);
+                resultNode.componentSubTree = walkAndReconcile(newNode.componentSubTree, oldNode.componentSubTree);
+            }
+            // console.log(resultNode)
+            return resultNode;
+
         }
-
-
 
 
     }
@@ -616,6 +700,9 @@ let renderScheme;
 let oldRenderScheme;
 let newRenderScheme;
 
+currentVirtualDOM = initializeVirtualDOM($(App1));
+
+
 function test_initializeVirtualDOM() {
     console.log(' ----------  Initializing Virtual DOM  ----------- ');
     currentVirtualDOM = initializeVirtualDOM($(App1));
@@ -636,13 +723,10 @@ function test_prepareRenderScheme(virtualDomObject) {
 
 function test_reconcileVirtualDOM() {
     console.log(' ----------  Preparing Render Scheme  ------------ ');
-    currentVirtualDOM = initializeVirtualDOM($(App1));
-    newVirtualDOM = initializeVirtualDOM($(App2));
+    currentVirtualDOM = reconcileVirtualDOM($(App1));
     oldRenderScheme = prepareRenderScheme(currentVirtualDOM);
-    newRenderScheme = prepareRenderScheme(newVirtualDOM);
 
-    console.log(currentVirtualDOM);
-    console.log(newVirtualDOM);
+    console.log('OLD:', currentVirtualDOM);
 
 
     console.log('oldRenderScheme:\r\n');
@@ -650,21 +734,42 @@ function test_reconcileVirtualDOM() {
     console.log('newRenderScheme:\r\n');
     console.log(newRenderScheme);
 
+    let reconciled = reconcileVirtualDOM($(App2), currentVirtualDOM);
+
+    console.log(
+        '----- RECONCILED VIRTUAL DOM -----\r\n',
+        reconciled,
+        '\r\n----------------------------------'
+    );
+    console.log('FINAL RENDER SCHEME:', prepareRenderScheme(reconciled));
+
     console.log(' --------------------  DONE  --------------------- ');
 }
 
 
-
+const row1 = document.createElement('div');
 const testBtn1 = document.createElement('button');
 testBtn1Text = document.createTextNode('Initialize VDOM');
 testBtn1.appendChild(testBtn1Text);
 testBtn1.onclick = test_initializeVirtualDOM;
 document.body.appendChild(testBtn1);
 
+const row2 = document.createElement('div');
 const testBtn2 = document.createElement('button');
 testBtn2Text = document.createTextNode('Prepare Render Scheme');
 testBtn2.appendChild(testBtn2Text);
 testBtn2.onclick = test_prepareRenderScheme;
 document.body.appendChild(testBtn2);
 
-test_reconcileVirtualDOM()
+const row3 = document.createElement('div');
+const testBtn3 = document.createElement('button');
+testBtn3Text = document.createTextNode('Reconcile VDOM');
+testBtn3.appendChild(testBtn3Text);
+testBtn3.onclick = test_reconcileVirtualDOM;
+document.body.appendChild(testBtn3);
+
+
+
+
+
+
