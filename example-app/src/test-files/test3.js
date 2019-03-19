@@ -5,7 +5,7 @@ const updateVirtualDOM = function () {
 };
 // ====== PLEASE REMOVE FUNCTION ABOVE ======
 
-// const vdomTypes = {
+// const _customTypes = {
 //     VirtualElement: Symbol('VirtualElement'),
 //     Component: Symbol('ClassComponent'),
 //     ClassComponent: Symbol('ClassComponent'),
@@ -13,12 +13,13 @@ const updateVirtualDOM = function () {
 //     MetaComponent: Symbol('MetaComponent')
 // }
 
-const vdomTypes = {
+const _customTypes = {
     VirtualElement: { virtualElement: true },
     Component: { component: true },
     ClassComponent: { classComponent: true },
     FunctionalComponent: { functionalComponent: true },
-    MetaComponent: { metaComponent: true }
+    MetaComponent: { metaComponent: true },
+    notDefined: { notDefined: true }
 }
 
 
@@ -54,10 +55,10 @@ const createClass = function (SuperClass, ClassConstructor, protoMethods, static
 
 const declare = {
     classComponent: function (component) {
-        setType(component, vdomTypes.ClassComponent);
+        setType(component, _customTypes.ClassComponent);
     },
     functionalComponent: function (component) {
-        setType(component, vdomTypes.FunctionalComponent);
+        setType(component, _customTypes.FunctionalComponent);
     }
 }
 
@@ -87,11 +88,11 @@ const MetaComponent = function (args = {
 }
 MetaComponent.prototype = {
     createInstance: function (props = {}) {
-        if (this.__$type$__ === vdomTypes.ClassComponent) {
+        if (this.__$type$__ === _customTypes.ClassComponent) {
             let instance = new this.archetype(props);
             instance.instanceID = ("" + Math.random()).slice(3);
             return instance;
-        } else if (this.__$type$__ === vdomTypes.FunctionalComponent) {
+        } else if (this.__$type$__ === _customTypes.FunctionalComponent) {
             throw new TypeError("Cannot create new instance of functional component:", this.archetype);
         }
     },
@@ -99,12 +100,12 @@ MetaComponent.prototype = {
         // Updates the 'instance' property with new instance of user-defined component;
         let _this = this;
         let renderResult;
-        if (this.__$type$__ === vdomTypes.FunctionalComponent) {
+        if (this.__$type$__ === _customTypes.FunctionalComponent) {
             this.inheritedProps = props;
             this.inheritedChildren = children;
             this.instance = null;
             renderResult = this.archetype(props);
-        } else if (this.__$type$__ === vdomTypes.ClassComponent) {
+        } else if (this.__$type$__ === _customTypes.ClassComponent) {
             this.inheritedProps = props
             this.inheritedChildren = children;
             this.instance = this.createInstance(props);
@@ -113,13 +114,13 @@ MetaComponent.prototype = {
         if (renderResult === undefined) { throw new TypeError('renderResult is undefined') }
         this.componentSubTree = renderResult;
         // console.log(this.inheritedChildren);
-        if (this.componentSubTree.__$type$__ === vdomTypes.VirtualElement) {
+        if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
             for (let i = 0; i < this.inheritedChildren.length; i++) {
                 this.componentSubTree.children.push(this.inheritedChildren[i])
             }
         } else if (
-            this.componentSubTree.__$type$__ === vdomTypes.ClassComponent
-            || this.componentSubTree.__$type$__ === vdomTypes.FunctionalComponent
+            this.componentSubTree.__$type$__ === _customTypes.ClassComponent
+            || this.componentSubTree.__$type$__ === _customTypes.FunctionalComponent
         ) {
             for (let i = 0; i < this.inheritedChildren.length; i++) {
                 this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i])
@@ -146,7 +147,7 @@ const Component = function (props = {}) {
 }
 Component.prototype = {
     constructor: Component,
-    __$type$__: vdomTypes.ClassComponent,
+    __$type$__: _customTypes.ClassComponent,
     render: function () {
         return new Error('render is undefined');
     },
@@ -167,7 +168,7 @@ const VirtualElement = function (type, props = {}, children = []) {
     this.type = type;
     this.props = props;
     this.children = children;
-    this.__$type$__ = vdomTypes.VirtualElement;
+    this.__$type$__ = _customTypes.VirtualElement;
 }
 VirtualElement.prototype.constructor = VirtualElement;
 
@@ -176,10 +177,10 @@ function createVirtualElement(type, props = {}, children = []) {
         return new VirtualElement(type, props, children);
     }
     else if (typeof type === "function") {
-        if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === vdomTypes.ClassComponent) {
-            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: vdomTypes.ClassComponent });
+        if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === _customTypes.ClassComponent) {
+            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.ClassComponent });
         } else {
-            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: vdomTypes.FunctionalComponent });
+            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.FunctionalComponent });
         }
     }
 }
@@ -252,7 +253,7 @@ function initializeVirtualDOM(rootComponent) {
         } else {
             // console.log('__$type$__ true');
             switch (vNode.__$type$__) {
-                case vdomTypes.VirtualElement:
+                case _customTypes.VirtualElement:
                     // console.log('Virtual Element', vNode);
                     target = new VirtualElement(
                         initialWalk(vNode.type), // 'type' property can contain components, so we need to walk the tree;
@@ -260,7 +261,7 @@ function initializeVirtualDOM(rootComponent) {
                         initialWalk(vNode.children), // each array element parsed by the walk agorithm;
                     );
                     break;
-                case vdomTypes.ClassComponent:
+                case _customTypes.ClassComponent:
                     // console.log('Class Component', vNode);
                     if (!vNode.componentSubTree) {
                         // console.log('instance NULL');
@@ -277,7 +278,7 @@ function initializeVirtualDOM(rootComponent) {
                         target.componentSubTree = initialWalk(vNode.componentSubTree);
                     }
                     break;
-                case vdomTypes.FunctionalComponent:
+                case _customTypes.FunctionalComponent:
                     // console.log('Functional Component', vNode);
                     if (!vNode.componentSubTree) {
                         vNode.updateComponent(vNode.inheritedProps, vNode.inheritedChildren);
@@ -363,13 +364,13 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
             }
         } else {
             switch (newNode.__$type$__) {
-                case vdomTypes.VirtualElement:
+                case _customTypes.VirtualElement:
                     target = reconcileVirtualElements(newNode, oldNode);
                     break;
-                case vdomTypes.ClassComponent:
+                case _customTypes.ClassComponent:
                     target = reconcileClassComponents(newNode, oldNode)
                     break;
-                case vdomTypes.FunctionalComponent:
+                case _customTypes.FunctionalComponent:
                     target = reconcileFunctionalComponents(newNode, oldNode);
                     break;
                 default:
@@ -492,18 +493,18 @@ function prepareRenderScheme(reconciledVdom) { // Constructs the
         let target;
         if (typeof vNode === 'object') {
             switch (vNode.__$type$__) {
-                case vdomTypes.VirtualElement:
+                case _customTypes.VirtualElement:
                     // console.log('VirtualElement');
                     target = vNode;
                     target.children = vNode.children.map(function (child) {
                         return walkSubTree(child);
                     });
                     break;
-                case vdomTypes.FunctionalComponent:
+                case _customTypes.FunctionalComponent:
                     // console.log('FunctionalComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
-                case vdomTypes.ClassComponent:
+                case _customTypes.ClassComponent:
                     // console.log('ClassComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
@@ -539,19 +540,6 @@ const eventManager = {
 // =====================================================================================
 // =================================  DOM Diff/Patch  ==================================
 // =====================================================================================
-export function nodeHasChanged(vNode1, vNode2) {
-    if (typeof vNode1 !== typeof vNode2) {
-        return true;
-    };
-    if (typeof vNode1 === 'string' && vNode1 !== vNode2) {
-        return true;
-    };
-    if (vNode1.type !== vNode2.type) {
-        return true;
-    };
-
-    return false;
-}
 
 
 function isCustomProp(name) {
@@ -613,16 +601,14 @@ function removeProp($target, propName, value = null) {
     }
 }
 function updateProp($target, propName, newValue, oldValue) {
-    // console.log(arguments);
+    console.log(arguments);
     if (!newValue) {
         removeProp($target, propName, oldValue);
     } else if (!oldValue) {
-        // console.log("Old prop value is undefined");
+        console.log("Old prop value is undefined");
         setProp($target, propName, newValue);
     } else if (newValue !== oldValue) {
         if (propName === "events") {
-            let args = Array.prototype.slice.call(arguments, 0);
-            console.log(args);
             removeProp($target, propName, oldValue);
         }
         setProp($target, propName, newValue);
@@ -641,75 +627,80 @@ function updateProps($target, newProps, oldProps) {
 
 
 
-function createNode(vNode = null || '' || { type: undefined, props: {}, children: [] }) {
+function createNode(vNode = null || '' || { type: undefined, props: {}, children: [], __$type$__ }) {
     let $node;
-    switch (typeof vNode) {
-        case 'string':
-            $node = document.createTextNode(vNode);
-            break;
-        case 'object':
-            $node = document.createElement(vNode.type);
-            break;
-        default:
-            throw new TypeError('Invalid argument type for vNode');
+    if (!vNode) { // should catch null/undefined
+        throw new TypeError('Cannot create node with value === null || undefined');
+    } else {
+        switch (typeof vNode) {
+            case 'string':
+                $node = document.createTextNode(vNode);
+                break;
+            case 'object':
+                if (vNode.__$type$__ === _customTypes.VirtualElement) {
+                    $node = document.createElement(vNode.type);
+                }
+                else { console.log('Let me know if this happens'); }
+                break;
+            default:
+                throw new TypeError('Invalid argument type for vNode');
+        }
     }
     return $node;
 }
-
-function updateElement($parent, newNode, oldNode, index = 0) {
-    console.log(arguments);
-    if (!oldNode) {
-        const $node = createNode(newNode);
-        switch (typeof newNode) {
-            case 'string':
-                console.log(newNode);
-                break;
-            case 'object':
-                if (Array.isArray(newNode)) {
-
-                } else {
-                    console.log(newNode);
-                    updateProps($node, newNode.props, undefined);
-                    updateChildren($node, newNode.children, undefined);
-                }
-                break;
-        }
-        $parent.appendChild($node);
-    }
-    else if (!newNode) { // should catch both undefined and null children;
-        $parent.removeChild($parent.childNodes[index]);
-    }
-    else if (nodeHasChanged(newNode, oldNode) === true) {
-        $parent.replaceChild(createNode(newNode), $parent.childNodes[index]);
-    } else {
-        switch (typeof newNode) {
-            case 'object':
-                updateProps($parent.childNodes[index], newNode.props, oldNode.props);
-                updateChildren($parent.childNodes[index], newNode.children, oldNode.children, index);
-                break;
-            case 'string':
-                console.log('~~~~~~ STRING ???');
-                break;
-        }
-    }
-
-    function updateChildren(parent, newChildren, oldChildren, _index = 0) {
-        console.log('UPDATE CHILDREN:\r\n', arguments);
-        const _newChildren = newChildren ? newChildren : [];
-        const _oldChildren = oldChildren ? oldChildren : [];
-        const newLength = _newChildren.length;
-        const oldLength = _oldChildren.length;
-        for (let i = 0; (i < newLength || i < oldLength); i++) {
-
-            updateElement(parent, _newChildren[i], _oldChildren[i], i);
-        }
-
-    }
-
-
-
+function nodeHasChanged(vNode1, vNode2) {
+    if (typeof vNode1 !== typeof vNode2) { return true; };
+    if (typeof vNode1 === 'string' && vNode1 !== vNode2) { return true; };
+    if (typeof vNode1 === "object" && vNode1.type !== vNode2.type) { return true; };
+    return false;
 }
 
+function updateElement($parent, newNode, oldNode, index = 0) {
+    if (!oldNode) {
+        if (!newNode) { console.log("Let me know if this happens"); }
+        if (newNode) {
+            console.log(newNode);
+            let $node = createNode(newNode);
+            if (typeof newNode === 'object' && newNode.__$type$__ === _customTypes.VirtualElement) {
+                updateProps($node, newNode.props, undefined);
+                for(let i = 0; i < newNode.children.length; i++) {
+                    updateElement($node, newNode.children[i], undefined, i);
+                }
+            }
+            $parent.appendChild($node);
+
+        }
+    }
+    else if (!newNode) {
+        if (!oldNode) { console.log('Let me know if this happens'); }
+        $parent.removeChild($parent.childNodes[index]);
+    }
+    else if (newNode && oldNode) {
+        if (nodeHasChanged(newNode, oldNode) === true){
+            // if the node type has changed (or if a differente node is intended to be there), replace the node altogether.
+            let $node = createNode(newNode);
+            updateProps($node, newNode.props, undefined);
+            for(let i = 0; i < newNode.children; i++) {
+                updateElement($node, newNode.children[i], oldNode.children[i], i);
+            }
+            $parent.replaceChild($node,$parent.childNodes[index]);
+        } else {
+            // if the node type is the same, then we will just update the props and recursively evaluate children.
+
+            if (typeof newNode === 'object') {
+                let $node = $parent.childNodes[index];
+                updateProps($node, newNode.props, oldNode.props);
+                const maxLength = (
+                    newNode.children.length > oldNode.children.length ?
+                    newNode.children.length : oldNode.children.length 
+                );
+                for (let i = 0; i < maxLength; i++) {
+                    updateElement($node, newNode.children[i], oldNode.children[i], i);
+                }
+            }
+        }
+    }
+}
 
 
 
@@ -763,7 +754,7 @@ class AppBody extends Component {
             className = 'app-body';
         }
         return (
-            $('div', { className: className, width: '3em' })
+            $('div', { className: className, width: '80%' })
         )
     }
 }
@@ -820,7 +811,7 @@ class App1 extends Component {
     render() {
         return (
             $('div', { className: 'App1', style: { width: "50%", height: '300px' } }, [
-                $(AppHeader),
+                $(AppHeader, { uniqueKey: 'disopafdis' }),
                 $(AppBody, { inheritedProp: 'INHERITED PROP' }, [
                     $('div', { className: 'body-content' }, [
                         $('div', { className: 'row' }, ['This is row 1']),
@@ -850,7 +841,8 @@ class App2 extends Component {
                         $('div', { className: 'row' }, ['This is row 7']),
                     ]),
                 ]),
-                $(AppFooter, { stuff: 'stuff' }, ['text'])
+                $(AppFooter, { stuff: 'stuff' }, ['text']),
+                $('div', { style: { height: "100px", width: "200px", border: "1px solid black"} }),
             ])
         );
     }
@@ -917,16 +909,16 @@ function test_reconcileVirtualDOM() {
 function test_initialRender() {
     console.log(' -------------  Testing DOM Patch  --------------- ');
 
+    for(let i = 0; i < ROOT.childNodes.length; i++) {
+        ROOT.removeChild(ROOT.childNodes[0]);
+    }
     oldVirtualDOM = reconcileVirtualDOM($(App1));
     oldRenderScheme = prepareRenderScheme(oldVirtualDOM);
-
-
 
     console.group('Render Schemes:')
     console.log("Old:\r\n", oldRenderScheme);
     console.log("New:\r\n", newRenderScheme);
     console.groupEnd();
-
 
     updateElement(ROOT, oldRenderScheme, undefined, 0);
 
@@ -946,6 +938,8 @@ function test_patchDOM() {
     console.groupEnd();
 
     updateElement(ROOT, newRenderScheme, oldRenderScheme, 0);
+    oldVirtualDOM = newVirtualDOM;
+    oldRenderScheme = newRenderScheme;
 
     // console.group('Messages:\r\n');
     // console.groupEnd();
@@ -954,8 +948,9 @@ function test_patchDOM() {
 
 
 
-
-// ================== Setting up test interface ==================
+// ===========================================================================
+// ========================== Test Suite Interface: ==========================
+// ===========================================================================
 
 let test_interface = document.createElement('div');
 test_interface.id = "test-interface";
@@ -1006,8 +1001,6 @@ testBtn5.onclick = test_patchDOM;
 row5.appendChild(testBtn5);
 test_interface.appendChild(row5);
 
-
-
 // Apply styles to test buttons:
 const buttonArray = Array.prototype.slice.call(document.getElementsByTagName('button'));
 const buttonStyles = {
@@ -1017,7 +1010,6 @@ const buttonStyles = {
     border: '1px solid black',
     borderRadius: '0.15em'
 }
-
 buttonArray.forEach((button) => {
     Object.keys(buttonStyles).forEach((propName) => {
         button.style[propName] = buttonStyles[propName];
@@ -1025,6 +1017,8 @@ buttonArray.forEach((button) => {
 });
 
 
+
+// HOT MODULE REPLACEMENT CONFIG:
 if (module.hot) {
     module.hot.dispose(function () {
         test_interface.remove();
