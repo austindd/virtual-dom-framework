@@ -5,23 +5,50 @@ const updateVirtualDOM = function () {
 };
 // ====== PLEASE REMOVE FUNCTION ABOVE ======
 
-// const _customTypes = {
-//     VirtualElement: Symbol('VirtualElement'),
-//     Component: Symbol('ClassComponent'),
-//     ClassComponent: Symbol('ClassComponent'),
-//     FunctionalComponent: Symbol('FunctionalComponent'),
-//     MetaComponent: Symbol('MetaComponent')
-// }
 
-const _customTypes = {
-    notDefined: { notDefined: true }, /* to be used as a pseudo-undefined value that indicates the variable has been evaluated and intenetionally left undefined */
-    VirtualElement: { virtualElement: true },
-    VirtualTextNode: { virtualTextNod: true },
-    Component: { component: true },
-    ClassComponent: { classComponent: true },
-    FunctionalComponent: { functionalComponent: true },
-    MetaComponent: { metaComponent: true },
-}
+const _customTypes = Object.create({}, {
+    _error_invalidSet: {
+        value: function (p, val) {
+            let msg = 'Cannot assign value (' + val + ') to ' + p;
+            throw new Error(msg);
+        }
+    },
+    _notDefined: { value: { notDefined: true } },
+    _VirtualElement: { value: { virtualElement: true } },
+    _VirtualTextNode: { value: { virtualTextNod: true } },
+    _Component: { value: { component: true } },
+    _ClassComponent: { value: { classComponent: true } },
+    _FunctionalComponent: { value: { functionalComponent: true } },
+    _MetaComponent: { value: { metaComponent: true } },
+    notDefined: {
+        get: function () { return this._notDefined; },
+        set: function (x) { return this._error_invalidSet('_customTypes.notDefined', String(x)); }
+    },
+    VirtualElement: {
+        get: function () { return this._VirtualElement; },
+        set: function (x) { return this._error_invalidSet('_customTypes.VirtualElement', String(x)); }
+    },
+    VirtualTextNode: {
+        get: function () { return this._VirtualTextNode; },
+        set: function (x) { return this._error_invalidSet('_customTypes.VirtualTextNode', String(x)); }
+    },
+    Component: {
+        get: function () { return this._Component; },
+        set: function (x) { return this._error_invalidSet('_customTypes.Component', String(x)); }
+    },
+    ClassComponent: {
+        get: function () { return this._ClassComponent; },
+        set: function (x) { return this._error_invalidSet('_customTypes.ClassComponent', String(x)); }
+    },
+    FunctionalComponent: {
+        get: function () { return this._FunctionalComponent; },
+        set: function (x) { return this._error_invalidSet('_customTypes.FunctionalComponent', String(x)); }
+    },
+    MetaComponent: {
+        get: function () { return this._MetaComponent; },
+        set: function (x) { return this._error_invalidSet('_customTypes.MetaComponent', String(x)); }
+    },
+});
 
 
 const extendObject = function (targetObj, newObj) {
@@ -939,8 +966,7 @@ function test_patchDOM() {
     oldRenderScheme = newRenderScheme;
 
     console.log("DOM Structure:\r\n", ROOT.childNodes);
-    // console.group('Messages:\r\n');
-    // console.groupEnd();
+    _customTypes.VirtualElement = oldRenderScheme;    
     console.log(' --------------------  DONE  --------------------- ');
 }
 
@@ -973,7 +999,7 @@ function test_longestArray() {
 
 function normalizeChildren([newChildren, oldChildren]) {
     if (!newChildren && !oldChildren) {
-        return [[],[]];
+        return [[], []];
     } else if (!newChildren) {
         return [[].fill(undefined, 0, oldChildren.length - 1), oldChildren];
     } else if (!oldChildren) {
