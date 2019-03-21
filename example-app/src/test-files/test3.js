@@ -50,7 +50,6 @@ const _customTypes = Object.create({}, {
     },
 });
 
-
 const extendObject = function (targetObj, newObj) {
     // agnostic tool to map object properties onto another object
     let keys = Object.keys(newObj), i = keys.length;
@@ -75,7 +74,6 @@ const createClass = function (SuperClass, ClassConstructor, protoMethods, static
     };
     return ClassConstructor;
 }
-
 
 const MetaComponent = function (args = {
     archetype: null,
@@ -966,10 +964,8 @@ function test_patchDOM() {
     oldRenderScheme = newRenderScheme;
 
     console.log("DOM Structure:\r\n", ROOT.childNodes);
-    _customTypes.VirtualElement = oldRenderScheme;    
     console.log(' --------------------  DONE  --------------------- ');
 }
-
 
 
 function longestArray(array1, ...rest) {
