@@ -624,9 +624,6 @@ function updateProps($target, newProps, oldProps) {
         updateProp($target, propName, np, op);
     });
 }
-
-
-
 function createNode(vNode = null || '' || { type: undefined, props: {}, children: [], __$type$__ }) {
     let $node;
     if (!vNode) { // should catch null/undefined
@@ -646,6 +643,12 @@ function createNode(vNode = null || '' || { type: undefined, props: {}, children
                 throw new TypeError('Invalid argument type for vNode');
         }
     }
+
+    /* --- used for keeping track of DOM node objects,
+    and knowing when they are destroyed/replaced --- */
+    $node.__instanceID = ("" + Math.random()).slice(3);
+    /* TODO: Remove after testing */
+
     return $node;
 }
 function nodeHasChanged(vNode1, vNode2) {
@@ -663,7 +666,7 @@ function updateElement($parent, newNode, oldNode, index = 0) {
             let $node = createNode(newNode);
             if (typeof newNode === 'object' && newNode.__$type$__ === _customTypes.VirtualElement) {
                 updateProps($node, newNode.props, undefined);
-                for(let i = 0; i < newNode.children.length; i++) {
+                for (let i = 0; i < newNode.children.length; i++) {
                     updateElement($node, newNode.children[i], undefined, i);
                 }
             }
@@ -676,14 +679,14 @@ function updateElement($parent, newNode, oldNode, index = 0) {
         $parent.removeChild($parent.childNodes[index]);
     }
     else if (newNode && oldNode) {
-        if (nodeHasChanged(newNode, oldNode) === true){
+        if (nodeHasChanged(newNode, oldNode) === true) {
             // if the node type has changed (or if a differente node is intended to be there), replace the node altogether.
             let $node = createNode(newNode);
             updateProps($node, newNode.props, undefined);
-            for(let i = 0; i < newNode.children; i++) {
+            for (let i = 0; i < newNode.children; i++) {
                 updateElement($node, newNode.children[i], oldNode.children[i], i);
             }
-            $parent.replaceChild($node,$parent.childNodes[index]);
+            $parent.replaceChild($node, $parent.childNodes[index]);
         } else {
             // if the node type is the same, then we will just update the props and recursively evaluate children.
 
@@ -692,7 +695,7 @@ function updateElement($parent, newNode, oldNode, index = 0) {
                 updateProps($node, newNode.props, oldNode.props);
                 const maxLength = (
                     newNode.children.length > oldNode.children.length ?
-                    newNode.children.length : oldNode.children.length 
+                        newNode.children.length : oldNode.children.length
                 );
                 for (let i = 0; i < maxLength; i++) {
                     updateElement($node, newNode.children[i], oldNode.children[i], i);
@@ -842,7 +845,7 @@ class App2 extends Component {
                     ]),
                 ]),
                 $(AppFooter, { stuff: 'stuff' }, ['text']),
-                $('div', { style: { height: "100px", width: "200px", border: "1px solid black"} }),
+                $('div', { style: { height: "100px", width: "200px", border: "1px solid black" } }),
             ])
         );
     }
@@ -859,9 +862,7 @@ const getScriptElements = function () {
     });
 }
 
-document.body.insertBefore(
-    ROOT, getScriptElements()[0]
-);
+document.body.insertBefore(ROOT, getScriptElements()[0]);
 
 let oldVirtualDOM;
 let newVirtualDOM;
@@ -896,11 +897,11 @@ function test_reconcileVirtualDOM() {
     console.log('OLD RENDER SCHEME:\r\n', oldRenderScheme);
 
     let reconciled = reconcileVirtualDOM($(App2), oldVirtualDOM);
-    // console.log(
-    //     '----- RECONCILED VIRTUAL DOM -----\r\n',
-    //     reconciled,
-    //     '\r\n----------------------------------'
-    // );
+    console.log(
+        '----- RECONCILED VIRTUAL DOM -----\r\n',
+        reconciled,
+        '\r\n----------------------------------'
+    );
     newRenderScheme = prepareRenderScheme(reconciled);
     console.log('NEW RENDER SCHEME:\r\n', newRenderScheme);
     console.log(' --------------------  DONE  --------------------- ');
@@ -909,7 +910,7 @@ function test_reconcileVirtualDOM() {
 function test_initialRender() {
     console.log(' -------------  Testing DOM Patch  --------------- ');
 
-    for(let i = 0; i < ROOT.childNodes.length; i++) {
+    for (let i = 0; i < ROOT.childNodes.length; i++) {
         ROOT.removeChild(ROOT.childNodes[0]);
     }
     oldVirtualDOM = reconcileVirtualDOM($(App1));
@@ -941,6 +942,7 @@ function test_patchDOM() {
     oldVirtualDOM = newVirtualDOM;
     oldRenderScheme = newRenderScheme;
 
+    console.log("DOM Structure:\r\n", ROOT.childNodes);
     // console.group('Messages:\r\n');
     // console.groupEnd();
     console.log(' --------------------  DONE  --------------------- ');
@@ -948,11 +950,113 @@ function test_patchDOM() {
 
 
 
+function longestArray(array1, ...rest) {
+    const _slice = Array.prototype.slice;
+    const args = _slice.call(arguments);
+    const result = args.reduce((max, arr) => {
+        if (arr.length > max.length) {
+            return arr;
+        } else { return max; }
+    });
+    return result;
+}
+
+function test_longestArray() {
+    let result1 = longestArray(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        [2, 3, 1, 2, 3, 3, 2, 2, 3, 4]
+    )
+    let result2 = longestArray(
+        [2, 3, 5, 3, 2, 4, 5, 6, 7, 5, 3, 4, 5, 4],
+        [3, 5, 6, 7, 3],
+        [1, 5, 0, 9, 8, 9, 6, 4, 3, 3],
+        [1, 3, 5, 6, 74, 2]
+    )
+    console.log("\r\n", result1, "\r\n", result2);
+}
+
+function normalizeChildren([newChildren, oldChildren]) {
+    if (!newChildren && !oldChildren) {
+        return [[],[]];
+    } else if (!newChildren) {
+        return [[].fill(undefined, 0, oldChildren.length - 1), oldChildren];
+    } else if (!oldChildren) {
+        return [newChildren, [].fill(undefined, 0, oldChildren.length - 1)];
+    }
+
+    const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
+    const _newChildren = newChildren.map((x) => { return x; });
+    const _oldChildren1 = oldChildren.map((x) => { return x; });
+    const _oldChildren2 = [];
+    const _placeholder = { _placeholder: true };
+
+    let _indexCounter = 0;
+
+    for (let i = 0; i < maxLength; i++) {
+        _oldChildren2[i] = _placeholder;
+        _oldChildren2[i]._originalIndex = i;
+    }
+    for (let i = 0; i < maxLength; i++) {
+        if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
+            for (let j = 0; j < _oldChildren1.length; j++) {
+                if (
+                    typeof _oldChildren1[j] === 'object' &&
+                    _oldChildren1[j].key &&
+                    _oldChildren1[j].key === _newChildren[i].key
+                ) {
+                    const x = _oldChildren2[i]._originalIndex;
+                    _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
+                    _oldChildren2[i]._originalIndex = x;
+                    break;
+                }
+            }
+        }
+        // console.log(_newChildren[i], _oldChildren2[i]);
+    }
+    for (let i = 0; i < maxLength; i++) {
+        if (_oldChildren2[i] === _placeholder) {
+            _oldChildren2[i] = _oldChildren1.shift();
+        }   
+    }
+    while (_newChildren.length < maxLength) {
+        _newChildren.push(undefined);
+    }
+    console.log('NEW:', _newChildren);
+    console.log('OLD1:', _oldChildren1);
+    console.log('OLD2:', _oldChildren2);
+    return [_newChildren, _oldChildren2];
+}
+
+
+function test_normalizeChildren() {
+    const oldChildren = [
+        { type: 'div', props: {}, children: [], id: 6 },
+        { type: 'div', props: { key: 1 }, key: 1, children: [], id: 1 },
+        { type: 'div', props: { key: 2 }, key: 2, children: [], id: 2 },
+        { type: 'div', props: { key: 3 }, key: 3, children: [], id: 3 },
+        { type: 'div', props: { key: 4 }, key: 4, children: [], id: 4 },
+        { type: 'div', props: { key: 5 }, key: 5, children: [], id: 5 },
+
+    ];
+    const newChildren = [
+        { type: 'div', props: { key: 1 }, key: 1, children: [], id: 1 },
+        { type: 'div', props: { key: 2 }, key: 2, children: [], id: 2 },
+        { type: 'div', props: { key: 4 }, key: 4, children: [], id: 4 },
+        { type: 'div', props: { key: 5 }, key: 5, children: [], id: 5 },
+        { type: 'div', props: { key: 3 }, key: 3, children: [], id: 3 },
+    ]
+    let result = normalizeChildren([newChildren, oldChildren]);
+    console.log(result);
+    return result;
+}
+
+
 // ===========================================================================
 // ========================== Test Suite Interface: ==========================
 // ===========================================================================
 
 let test_interface = document.createElement('div');
+test_interface.style.textAlign = "center";
 test_interface.id = "test-interface";
 document.body.insertBefore(test_interface, document.body.childNodes[0]);
 
@@ -1001,10 +1105,21 @@ testBtn5.onclick = test_patchDOM;
 row5.appendChild(testBtn5);
 test_interface.appendChild(row5);
 
+const row6 = document.createElement('div');
+row6.id = "row6";
+const testBtn6 = document.createElement('button');
+const testBtn6Text = document.createTextNode('Test normalizeChildren');
+testBtn6.appendChild(testBtn6Text);
+testBtn6.onclick = test_normalizeChildren;
+row6.appendChild(testBtn6);
+test_interface.appendChild(row6);
+
+
+
 // Apply styles to test buttons:
 const buttonArray = Array.prototype.slice.call(document.getElementsByTagName('button'));
 const buttonStyles = {
-    margin: '0.5em',
+    margin: '0.25em',
     padding: '0.5em',
     backgroundColor: "rgb(110, 146, 200)",
     border: '1px solid black',
@@ -1015,6 +1130,13 @@ buttonArray.forEach((button) => {
         button.style[propName] = buttonStyles[propName];
     });
 });
+
+
+
+
+
+
+
 
 
 
