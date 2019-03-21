@@ -14,16 +14,14 @@ const updateVirtualDOM = function () {
 // }
 
 const _customTypes = {
+    notDefined: { notDefined: true }, /* to be used as a pseudo-undefined value that indicates the variable has been evaluated and intenetionally left undefined */
     VirtualElement: { virtualElement: true },
+    VirtualTextNode: { virtualTextNod: true },
     Component: { component: true },
     ClassComponent: { classComponent: true },
     FunctionalComponent: { functionalComponent: true },
     MetaComponent: { metaComponent: true },
-    notDefined: { notDefined: true }
 }
-
-
-const _stuff = {};
 
 
 const extendObject = function (targetObj, newObj) {
@@ -50,18 +48,6 @@ const createClass = function (SuperClass, ClassConstructor, protoMethods, static
     };
     return ClassConstructor;
 }
-
-
-
-const declare = {
-    classComponent: function (component) {
-        setType(component, _customTypes.ClassComponent);
-    },
-    functionalComponent: function (component) {
-        setType(component, _customTypes.FunctionalComponent);
-    }
-}
-
 
 
 const MetaComponent = function (args = {
@@ -168,6 +154,7 @@ const VirtualElement = function (type, props = {}, children = []) {
     this.type = type;
     this.props = props;
     this.children = children;
+    this.$nodeRef = null;
     this.__$type$__ = _customTypes.VirtualElement;
 }
 VirtualElement.prototype.constructor = VirtualElement;
@@ -186,6 +173,17 @@ function createVirtualElement(type, props = {}, children = []) {
 }
 const $ = createVirtualElement;
 
+class VirtualTextNode {
+    constructor(textValue) {
+        this.type = "textNode";
+        this.textValue = textValue;
+        this.prevVirtualSibling = null;
+        this.nextVirtualSibling = null;
+        this.normalizedSuperstring = null;
+        this.nodeRef = null;
+        this.__$type$__ = _customTypes.VirtualTextNode;
+    }
+}
 
 
 
@@ -354,7 +352,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                         for (let i = 0; i < propKeys.length; i++) {
                             target[propKeys[i]] = walkAndReconcile(newNode[propKeys[i]], oldNode[propKeys[i]]);
                         }
-
                     }
                     break;
                 default:
@@ -601,11 +598,9 @@ function removeProp($target, propName, value = null) {
     }
 }
 function updateProp($target, propName, newValue, oldValue) {
-    console.log(arguments);
     if (!newValue) {
         removeProp($target, propName, oldValue);
     } else if (!oldValue) {
-        console.log("Old prop value is undefined");
         setProp($target, propName, newValue);
     } else if (newValue !== oldValue) {
         if (propName === "events") {
@@ -615,7 +610,6 @@ function updateProp($target, propName, newValue, oldValue) {
     }
 }
 function updateProps($target, newProps, oldProps) {
-    // console.log(arguments);
     const props = Object.assign({}, newProps, oldProps);
     Object.keys(props).forEach(propName => {
         /* Call updateProp, passing undefined props as __explicitly__ undefined values */
@@ -662,7 +656,6 @@ function updateElement($parent, newNode, oldNode, index = 0) {
     if (!oldNode) {
         if (!newNode) { console.log("Let me know if this happens"); }
         if (newNode) {
-            console.log(newNode);
             let $node = createNode(newNode);
             if (typeof newNode === 'object' && newNode.__$type$__ === _customTypes.VirtualElement) {
                 updateProps($node, newNode.props, undefined);
@@ -671,17 +664,20 @@ function updateElement($parent, newNode, oldNode, index = 0) {
                 }
             }
             $parent.appendChild($node);
-
+            newNode.$nodeRef = $node;
         }
     }
     else if (!newNode) {
         if (!oldNode) { console.log('Let me know if this happens'); }
+        console.log($parent.childNodes[index]);
+        console.log(oldNode);
         $parent.removeChild($parent.childNodes[index]);
     }
     else if (newNode && oldNode) {
         if (nodeHasChanged(newNode, oldNode) === true) {
             // if the node type has changed (or if a differente node is intended to be there), replace the node altogether.
             let $node = createNode(newNode);
+            newNode.$nodeRef = $node;
             updateProps($node, newNode.props, undefined);
             for (let i = 0; i < newNode.children; i++) {
                 updateElement($node, newNode.children[i], oldNode.children[i], i);
@@ -692,6 +688,7 @@ function updateElement($parent, newNode, oldNode, index = 0) {
 
             if (typeof newNode === 'object') {
                 let $node = $parent.childNodes[index];
+                newNode.$nodeRef = $node;
                 updateProps($node, newNode.props, oldNode.props);
                 const maxLength = (
                     newNode.children.length > oldNode.children.length ?
@@ -704,7 +701,6 @@ function updateElement($parent, newNode, oldNode, index = 0) {
         }
     }
 }
-
 
 
 // =====================================================================================
@@ -988,13 +984,16 @@ function normalizeChildren([newChildren, oldChildren]) {
     const _newChildren = newChildren.map((x) => { return x; });
     const _oldChildren1 = oldChildren.map((x) => { return x; });
     const _oldChildren2 = [];
-    const _placeholder = { _placeholder: true };
-
-    let _indexCounter = 0;
+    const _placeholder = { _placeholder: true }; // Will be replaced by child values or 'undefined' after matching
 
     for (let i = 0; i < maxLength; i++) {
+        _oldChildren1[i]._fromIndex = i;
         _oldChildren2[i] = _placeholder;
-        _oldChildren2[i]._originalIndex = i;
+        if (!_newChildren[i]) {
+            _newChildren[i] = undefined;
+        } else {
+            _newChildren[i]._currentIndex_ = i;
+        }
     }
     for (let i = 0; i < maxLength; i++) {
         if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
@@ -1004,9 +1003,8 @@ function normalizeChildren([newChildren, oldChildren]) {
                     _oldChildren1[j].key &&
                     _oldChildren1[j].key === _newChildren[i].key
                 ) {
-                    const x = _oldChildren2[i]._originalIndex;
+                    _oldChildren2[i] = null;
                     _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
-                    _oldChildren2[i]._originalIndex = x;
                     break;
                 }
             }
@@ -1016,7 +1014,8 @@ function normalizeChildren([newChildren, oldChildren]) {
     for (let i = 0; i < maxLength; i++) {
         if (_oldChildren2[i] === _placeholder) {
             _oldChildren2[i] = _oldChildren1.shift();
-        }   
+        }
+        _oldChildren2[i]._toIndex_ = i;
     }
     while (_newChildren.length < maxLength) {
         _newChildren.push(undefined);
@@ -1026,7 +1025,6 @@ function normalizeChildren([newChildren, oldChildren]) {
     console.log('OLD2:', _oldChildren2);
     return [_newChildren, _oldChildren2];
 }
-
 
 function test_normalizeChildren() {
     const oldChildren = [
@@ -1145,7 +1143,7 @@ if (module.hot) {
     module.hot.dispose(function () {
         test_interface.remove();
         ROOT.remove();
+        console.clear();
     });
-    console.clear();
     module.hot.accept();
 }

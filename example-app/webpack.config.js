@@ -18,7 +18,7 @@ module.exports = {
     plugins: [
         new CleanWebpackPlugin(['dist']),
         new HtmlWebpackPlugin({
-            title: 'Hot Module Replacement'
+            title: 'Virtual DOM Testing'
         }),
         new webpack.HotModuleReplacementPlugin()
     ],
