@@ -6,7 +6,7 @@ const webpack = require('webpack');
 module.exports = {
     mode: 'development',
     entry: [
-        './src/test-files/test3.js',
+        './src/test-files/test4.js',
         'webpack/hot/dev-server',
         'webpack-dev-server/client?http://localhost:8080/'
     ],

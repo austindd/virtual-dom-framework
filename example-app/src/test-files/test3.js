@@ -85,7 +85,6 @@ const MetaComponent = function (args = {
     metaComponentID: null,
     __$type$__: null
 }) {
-    const _this = this;
     this.archetype = args.archetype;
     this.inheritedProps = args.inheritedProps;
     this.inheritedChildren = args.inheritedChildren;
