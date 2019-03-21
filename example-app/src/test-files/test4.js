@@ -124,16 +124,18 @@ MetaComponent.prototype = {
         if (renderResult === undefined) { throw new TypeError('renderResult is undefined') }
         this.componentSubTree = renderResult;
         // console.log(this.inheritedChildren);
-        if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
+        if (this.componentSubTree.__$type$__ === _customTypes.VirtualTextNode) {
+            console.log('here');
+        } else if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
             for (let i = 0; i < this.inheritedChildren.length; i++) {
-                this.componentSubTree.children.push(this.inheritedChildren[i])
+                this.componentSubTree.children.push(this.inheritedChildren[i]);
             }
         } else if (
             this.componentSubTree.__$type$__ === _customTypes.ClassComponent
             || this.componentSubTree.__$type$__ === _customTypes.FunctionalComponent
         ) {
             for (let i = 0; i < this.inheritedChildren.length; i++) {
-                this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i])
+                this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i]);
             }
         }
         this.initialized = true;
@@ -198,6 +200,11 @@ const VirtualElement = function (type, props = {}, children = []) {
 VirtualElement.prototype.constructor = VirtualElement;
 
 function createVirtualElement(type, props = {}, children = []) {
+    let idx = children.length;
+    children = children.map((child) => {
+        if (typeof child === "string") { return new VirtualTextNode(child) }
+        else return child;
+    });
     if (typeof type === 'string') {
         return new VirtualElement(type, props, children);
     }
@@ -285,6 +292,9 @@ function initializeVirtualDOM(rootComponent) {
                         initialWalk(vNode.children), // each array element parsed by the walk agorithm;
                     );
                     break;
+                case _customTypes.VirtualTextNode:
+                    console.log('here');
+                    break;
                 case _customTypes.ClassComponent:
                     // console.log('Class Component', vNode);
                     if (!vNode.componentSubTree) {
@@ -348,13 +358,14 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
     result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
     function walkAndReconcile(newNode, oldNode) {
         let target;
-
         if (!newNode.__$type$__) {
-            // Fill out non-component value handling here...
             if (!oldNode || typeof newNode !== typeof oldNode) {
                 target = newNode;
             }
             switch (typeof newNode) {
+                case "string":
+                    throw new Error("This should not happen");
+                    break;
                 case "object":
                     if (Array.isArray(newNode) === true) {
                         console.log('--- non-component array ??');
@@ -371,6 +382,7 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                         }
                     } else {
                         // regular objects:
+                        console.log('let me know if this happens');
                         if (Array.isArray(oldNode) === true) { target = newNode; }
                         target = {};
                         const props = Object.assign({}, newNode, oldNode);
@@ -386,15 +398,20 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     }
             }
         } else {
+            console.log(newNode);
             switch (newNode.__$type$__) {
                 case _customTypes.VirtualElement:
                     target = reconcileVirtualElements(newNode, oldNode);
                     break;
                 case _customTypes.ClassComponent:
-                    target = reconcileClassComponents(newNode, oldNode)
+                    target = reconcileClassComponents(newNode, oldNode);
                     break;
                 case _customTypes.FunctionalComponent:
                     target = reconcileFunctionalComponents(newNode, oldNode);
+                    break;
+                case _customTypes.VirtualTextNode:
+                    console.log('HERE');
+                    target = reconcileVirtualTextNodes(newNode, oldNode);
                     break;
                 default:
                     throw new TypeError("Invalid value for property '__$type$__' on component");
@@ -436,6 +453,7 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                 || typeof newNode.type !== typeof oldNode.type
             ) {
                 resultNode = newNode;
+                console.log(newNode);
                 resultNode.children = reconcileChildren(newNode.children, undefined);
             }
             else {
@@ -458,6 +476,20 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     }
                     // if props have changed, then we will use the new node, but we still need to compare children.
                     else { resultNode = oldNode; }
+                }
+            }
+            return resultNode;
+        }
+        function reconcileVirtualTextNodes(newNode, oldNode) {
+            console.log('HERE ~~~~~~~~~ LOLOLOLOLOLOLOL');
+            if (!newNode || typeof newNode !== typeof oldNode) {
+                resultNode = newNode;
+            }
+            else {
+                if (oldNode.textValue && newNode.textValue === oldNode.textValue) {
+                    resultNode = oldNode;
+                } else {
+                    resultNode = newNode;
                 }
             }
             return resultNode;
@@ -516,6 +548,9 @@ function prepareRenderScheme(reconciledVdom) { // Constructs the
         let target;
         if (typeof vNode === 'object') {
             switch (vNode.__$type$__) {
+                case _customTypes.VirtualElement:
+                    target = vNode;
+                    break;
                 case _customTypes.VirtualElement:
                     // console.log('VirtualElement');
                     target = vNode;
