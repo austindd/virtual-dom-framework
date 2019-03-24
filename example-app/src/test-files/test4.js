@@ -6,8 +6,107 @@ const updateVirtualDOM = function () {
 // ====== PLEASE REMOVE FUNCTION ABOVE ======
 
 
+// Accepts array with any contents. Finds adjacent elements of type 'string' and concatenates them into single elements.
+// Does not modify existing array. Ouputs a new array.
+function joinAdjacentStrings(inputArr = []) {
+    let resultArr = [];
+    let str = "";
+    let _inputArr = inputArr.map((x) => { return x; })
+
+    while (_inputArr.length > 0) {
+        // debugger;
+        const item = _inputArr.shift();
+        if (typeof item === 'number') {
+            str = str + item;
+        } else if (typeof item === 'string') {
+            str = str + item;
+        } else {
+            if (str.length > 0) {
+                resultArr.push(str);
+                str = "";
+            }
+            resultArr.push(item);
+        }
+    }
+    if (str.length > 0) {
+        resultArr.push(str);
+
+    }
+    return resultArr;
+}
+
+function longestArray(array1, ...rest) {
+    const _slice = Array.prototype.slice;
+    const args = _slice.call(arguments);
+    const result = args.reduce((max, arr) => {
+        if (arr.length > max.length) {
+            return arr;
+        } else { return max; }
+    });
+    return result;
+}
+
+
+function normalizeChildren([newChildren, oldChildren]) {
+    if (!newChildren && !oldChildren) {
+        return [[], []];
+    } else if (!newChildren) {
+        return [[].fill(undefined, 0, oldChildren.length - 1), oldChildren];
+    } else if (!oldChildren) {
+        return [newChildren, [].fill(undefined, 0, oldChildren.length - 1)];
+    }
+
+    const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
+    const _newChildren = newChildren.map((x) => { return x; });
+    const _oldChildren1 = oldChildren.map((x) => { return x; });
+    const _oldChildren2 = [];
+    const _placeholder = { _placeholder: true }; // Will be replaced by child values or 'undefined' after matching
+
+    for (let i = 0; i < maxLength; i++) {
+        _oldChildren1[i]._fromIndex = i;
+        _oldChildren2[i] = _placeholder;
+        if (!_newChildren[i]) {
+            _newChildren[i] = undefined;
+        } else {
+            _newChildren[i]._currentIndex_ = i;
+        }
+    }
+    for (let i = 0; i < maxLength; i++) {
+        if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
+            for (let j = 0; j < _oldChildren1.length; j++) {
+                if (
+                    typeof _oldChildren1[j] === 'object' &&
+                    _oldChildren1[j].key &&
+                    _oldChildren1[j].key === _newChildren[i].key
+                ) {
+                    _oldChildren2[i] = null;
+                    _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
+                    break;
+                }
+            }
+        }
+    }
+    for (let i = 0; i < maxLength; i++) {
+        if (_oldChildren2[i] === _placeholder) {
+            _oldChildren2[i] = _oldChildren1.shift();
+        }
+        _oldChildren2[i]._toIndex_ = i;
+    }
+    while (_newChildren.length < maxLength) {
+        _newChildren.push(undefined);
+    }
+    console.log('NEW:', _newChildren);
+    console.log('OLD1:', _oldChildren1);
+    console.log('OLD2:', _oldChildren2);
+    return [_newChildren, _oldChildren2];
+}
+
+
+/* _customTypes is a global object with properties defined as specific object references. It is used for
+ annotating */
+
 const _customTypes = Object.create({}, {
-    _error_invalidSet: {
+    _error_not_writable: {
         value: function (p, val) {
             let msg = 'Cannot assign value (' + val + ') to ' + p;
             throw new Error(msg);
@@ -22,31 +121,38 @@ const _customTypes = Object.create({}, {
     _MetaComponent: { value: { metaComponent: true } },
     notDefined: {
         get: function () { return this._notDefined; },
-        set: function (x) { return this._error_invalidSet('_customTypes.notDefined', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.notDefined', String(x)); },
+        enumerable: true
     },
     VirtualElement: {
         get: function () { return this._VirtualElement; },
-        set: function (x) { return this._error_invalidSet('_customTypes.VirtualElement', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.VirtualElement', String(x)); },
+        enumerable: true
     },
     VirtualTextNode: {
         get: function () { return this._VirtualTextNode; },
-        set: function (x) { return this._error_invalidSet('_customTypes.VirtualTextNode', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.VirtualTextNode', String(x)); },
+        enumerable: true
     },
     Component: {
         get: function () { return this._Component; },
-        set: function (x) { return this._error_invalidSet('_customTypes.Component', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.Component', String(x)); },
+        enumerable: true
     },
     ClassComponent: {
         get: function () { return this._ClassComponent; },
-        set: function (x) { return this._error_invalidSet('_customTypes.ClassComponent', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.ClassComponent', String(x)); },
+        enumerable: true
     },
     FunctionalComponent: {
         get: function () { return this._FunctionalComponent; },
-        set: function (x) { return this._error_invalidSet('_customTypes.FunctionalComponent', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.FunctionalComponent', String(x)); },
+        enumerable: true
     },
     MetaComponent: {
         get: function () { return this._MetaComponent; },
-        set: function (x) { return this._error_invalidSet('_customTypes.MetaComponent', String(x)); }
+        set: function (x) { return this._error_not_writable('_customTypes.MetaComponent', String(x)); },
+        enumerable: true
     },
 });
 
@@ -125,7 +231,7 @@ MetaComponent.prototype = {
         this.componentSubTree = renderResult;
         // console.log(this.inheritedChildren);
         if (this.componentSubTree.__$type$__ === _customTypes.VirtualTextNode) {
-            console.log('here');
+            // Not sure if this check is needed, but leaving it just in case.
         } else if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
             for (let i = 0; i < this.inheritedChildren.length; i++) {
                 this.componentSubTree.children.push(this.inheritedChildren[i]);
@@ -195,14 +301,16 @@ const VirtualElement = function (type, props = {}, children = []) {
     this.props = props;
     this.children = children;
     this.$nodeRef = null;
+    if (this.props.key) {
+        this.key = this.props.key;
+    }
     this.__$type$__ = _customTypes.VirtualElement;
 }
 VirtualElement.prototype.constructor = VirtualElement;
 
-function createVirtualElement(type, props = {}, children = []) {
-    let idx = children.length;
+function createVirtualNode(type, props = {}, children = []) {
     children = children.map((child) => {
-        if (typeof child === "string") { return new VirtualTextNode(child) }
+        if (typeof child === ("string" || "number" || "boolean")) { return new VirtualTextNode(child) }
         else return child;
     });
     if (typeof type === 'string') {
@@ -216,7 +324,7 @@ function createVirtualElement(type, props = {}, children = []) {
         }
     }
 }
-const $ = createVirtualElement;
+const $ = createVirtualNode;
 
 
 
@@ -293,7 +401,6 @@ function initializeVirtualDOM(rootComponent) {
                     );
                     break;
                 case _customTypes.VirtualTextNode:
-                    console.log('here');
                     break;
                 case _customTypes.ClassComponent:
                     // console.log('Class Component', vNode);
@@ -398,7 +505,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     }
             }
         } else {
-            console.log(newNode);
             switch (newNode.__$type$__) {
                 case _customTypes.VirtualElement:
                     target = reconcileVirtualElements(newNode, oldNode);
@@ -410,11 +516,10 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                     target = reconcileFunctionalComponents(newNode, oldNode);
                     break;
                 case _customTypes.VirtualTextNode:
-                    console.log('HERE');
                     target = reconcileVirtualTextNodes(newNode, oldNode);
                     break;
                 default:
-                    throw new TypeError("Invalid value for property '__$type$__' on component");
+                    throw new TypeError("Invalid value for property '__$type$__'");
             }
 
         }
@@ -453,7 +558,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                 || typeof newNode.type !== typeof oldNode.type
             ) {
                 resultNode = newNode;
-                console.log(newNode);
                 resultNode.children = reconcileChildren(newNode.children, undefined);
             }
             else {
@@ -481,7 +585,6 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
             return resultNode;
         }
         function reconcileVirtualTextNodes(newNode, oldNode) {
-            console.log('HERE ~~~~~~~~~ LOLOLOLOLOLOLOL');
             if (!newNode || typeof newNode !== typeof oldNode) {
                 resultNode = newNode;
             }
@@ -540,7 +643,10 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
 // ==========================================  END RECONCILE VIRTUAL DOM  ===========================================
 // ==================================================================================================================
 
-function prepareRenderScheme(reconciledVdom) { // Constructs the 
+/* prepareRenderScheme simplifies the virtual DOM tree to the objects that directly correspond with DOM nodes.
+Essentially, it removes the component-level objects from the structure, appending a copy of their subtrees.
+This simplifies the DOM update function, since it won't have to check for component objects anymore. */
+function prepareRenderScheme(reconciledVdom) {
     let result;
     result = walkSubTree(reconciledVdom);
 
@@ -549,14 +655,14 @@ function prepareRenderScheme(reconciledVdom) { // Constructs the
         if (typeof vNode === 'object') {
             switch (vNode.__$type$__) {
                 case _customTypes.VirtualElement:
-                    target = vNode;
-                    break;
-                case _customTypes.VirtualElement:
                     // console.log('VirtualElement');
                     target = vNode;
                     target.children = vNode.children.map(function (child) {
                         return walkSubTree(child);
                     });
+                    break;
+                case _customTypes.VirtualTextNode:
+                    target = vNode;
                     break;
                 case _customTypes.FunctionalComponent:
                     // console.log('FunctionalComponent');
@@ -688,6 +794,7 @@ function createNode(vNode = null || '' || { type: undefined, props: {}, children
     } else {
         switch (typeof vNode) {
             case 'string':
+                console.log('Let me know if this happens');
                 $node = document.createTextNode(vNode);
                 break;
             case 'object':
@@ -695,7 +802,10 @@ function createNode(vNode = null || '' || { type: undefined, props: {}, children
                     $node = document.createElement(vNode.type);
                     vNode.$nodeRef = $node;
                 }
-                else { console.log('Let me know if this happens'); }
+                else if (vNode.__$type$__ === _customTypes.VirtualTextNode) {
+                    $node = document.createTextNode(vNode.textValue);
+                    vNode.$nodeRef = $node;
+                }
                 break;
             default:
                 throw new TypeError('Invalid argument type for vNode');
@@ -712,7 +822,16 @@ function createNode(vNode = null || '' || { type: undefined, props: {}, children
 function nodeHasChanged(vNode1, vNode2) {
     if (typeof vNode1 !== typeof vNode2) { return true; };
     if (typeof vNode1 === 'string' && vNode1 !== vNode2) { return true; };
-    if (typeof vNode1 === "object" && vNode1.type !== vNode2.type) { return true; };
+    if (typeof vNode1 === "object") {
+        if (vNode1.__$type$__ !== vNode2.__$type$__) { return true; }
+        else if (vNode1.__$type$__ === _customTypes.VirtualElement) {
+            if (vNode1.type !== vNode1.type) { return true; }
+        }
+        else if (vNode1.__$type$__ === _customTypes.VirtualTextNode) {
+            if (vNode1.textValue !== vNode2.textValue) { return true; }
+        }
+
+    };
     return false;
 }
 
@@ -752,14 +871,21 @@ function updateElement($parent, newNode, oldNode, index = 0) {
 
             if (typeof newNode === 'object') {
                 let $node = $parent.childNodes[index];
-                newNode.$nodeRef = oldNode.$nodeRef;
-                updateProps($node, newNode.props, oldNode.props);
-                const maxLength = (
-                    newNode.children.length > oldNode.children.length ?
-                        newNode.children.length : oldNode.children.length
-                );
-                for (let i = 0; i < maxLength; i++) {
-                    updateElement($node, newNode.children[i], oldNode.children[i], i);
+                newNode.$nodeRef = $node;
+                if (newNode.__$type$__ === _customTypes.VirtualElement) {
+                    updateProps($node, newNode.props, oldNode.props);
+                    const maxLength = (
+                        newNode.children.length > oldNode.children.length ?
+                            newNode.children.length : oldNode.children.length
+                    );
+                    for (let i = 0; i < maxLength; i++) {
+                        updateElement($node, newNode.children[i], oldNode.children[i], i);
+                    }
+                }
+                else if (newNode.__$type$__ === _customTypes.VirtualTextNode) {
+                    if (newNode.textValue !== oldNode.textValue) {
+                        $node.textContent = newNode.textValue;
+                    }
                 }
             }
         }
@@ -770,6 +896,9 @@ function updateElement($parent, newNode, oldNode, index = 0) {
 // =====================================================================================
 // ===============================  END DOM Diff/Patch  ================================
 // =====================================================================================
+
+
+
 
 
 
@@ -930,8 +1059,23 @@ let renderScheme;
 let oldRenderScheme;
 let newRenderScheme;
 
-oldVirtualDOM = initializeVirtualDOM($(App1));
-
+function test_joinAdjacentStrings() {
+    let result = joinAdjacentStrings([
+        { 1: 0 },
+        ['textInsideArray'],
+        'plainText',
+        ' and other text',
+        ' and more text',
+        { 0: "placeholder" },
+        'even more text',
+        2,
+        8,
+        'stuff',
+        NaN
+    ]);
+    console.log(result.length, result);
+    return result;
+}
 
 function test_initializeVirtualDOM() {
     console.log(' ----------  Initializing Virtual DOM  ----------- ');
@@ -941,7 +1085,7 @@ function test_initializeVirtualDOM() {
     console.log(' --------------------  DONE  --------------------- ');
 }
 
-function test_prepareRenderScheme(virtualDomObject) {
+function test_prepareRenderScheme() {
     console.log(' ----------  Preparing Render Scheme  ------------ ');
     renderScheme = prepareRenderScheme(oldVirtualDOM);
     console.log('renderScheme:\r\n');
@@ -1007,85 +1151,6 @@ function test_patchDOM() {
 }
 
 
-function longestArray(array1, ...rest) {
-    const _slice = Array.prototype.slice;
-    const args = _slice.call(arguments);
-    const result = args.reduce((max, arr) => {
-        if (arr.length > max.length) {
-            return arr;
-        } else { return max; }
-    });
-    return result;
-}
-
-function test_longestArray() {
-    let result1 = longestArray(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9],
-        [2, 3, 1, 2, 3, 3, 2, 2, 3, 4]
-    )
-    let result2 = longestArray(
-        [2, 3, 5, 3, 2, 4, 5, 6, 7, 5, 3, 4, 5, 4],
-        [3, 5, 6, 7, 3],
-        [1, 5, 0, 9, 8, 9, 6, 4, 3, 3],
-        [1, 3, 5, 6, 74, 2]
-    )
-    console.log("\r\n", result1, "\r\n", result2);
-}
-
-function normalizeChildren([newChildren, oldChildren]) {
-    if (!newChildren && !oldChildren) {
-        return [[], []];
-    } else if (!newChildren) {
-        return [[].fill(undefined, 0, oldChildren.length - 1), oldChildren];
-    } else if (!oldChildren) {
-        return [newChildren, [].fill(undefined, 0, oldChildren.length - 1)];
-    }
-
-    const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
-    const _newChildren = newChildren.map((x) => { return x; });
-    const _oldChildren1 = oldChildren.map((x) => { return x; });
-    const _oldChildren2 = [];
-    const _placeholder = { _placeholder: true }; // Will be replaced by child values or 'undefined' after matching
-
-    for (let i = 0; i < maxLength; i++) {
-        _oldChildren1[i]._fromIndex = i;
-        _oldChildren2[i] = _placeholder;
-        if (!_newChildren[i]) {
-            _newChildren[i] = undefined;
-        } else {
-            _newChildren[i]._currentIndex_ = i;
-        }
-    }
-    for (let i = 0; i < maxLength; i++) {
-        if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
-            for (let j = 0; j < _oldChildren1.length; j++) {
-                if (
-                    typeof _oldChildren1[j] === 'object' &&
-                    _oldChildren1[j].key &&
-                    _oldChildren1[j].key === _newChildren[i].key
-                ) {
-                    _oldChildren2[i] = null;
-                    _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
-                    break;
-                }
-            }
-        }
-        // console.log(_newChildren[i], _oldChildren2[i]);
-    }
-    for (let i = 0; i < maxLength; i++) {
-        if (_oldChildren2[i] === _placeholder) {
-            _oldChildren2[i] = _oldChildren1.shift();
-        }
-        _oldChildren2[i]._toIndex_ = i;
-    }
-    while (_newChildren.length < maxLength) {
-        _newChildren.push(undefined);
-    }
-    console.log('NEW:', _newChildren);
-    console.log('OLD1:', _oldChildren1);
-    console.log('OLD2:', _oldChildren2);
-    return [_newChildren, _oldChildren2];
-}
 
 function test_normalizeChildren() {
     const oldChildren = [
@@ -1122,9 +1187,9 @@ document.body.insertBefore(test_interface, document.body.childNodes[0]);
 const row1 = document.createElement('div');
 row1.id = "row1";
 const testBtn1 = document.createElement('button');
-const testBtn1Text = document.createTextNode('Initialize VDOM');
+const testBtn1Text = document.createTextNode('Test joinAdjacentStrings');
 testBtn1.appendChild(testBtn1Text);
-testBtn1.onclick = test_initializeVirtualDOM;
+testBtn1.onclick = test_joinAdjacentStrings;
 row1.appendChild(testBtn1);
 test_interface.appendChild(row1);
 
@@ -1192,8 +1257,13 @@ buttonArray.forEach((button) => {
 
 
 
-
-
+let myTextNode = document.createTextNode('testing textNode');
+test_interface.appendChild(myTextNode);
+let myBtn = document.createElement('button');
+let myBtnText = document.createTextNode('Log Text Node');
+myBtn.onclick = (e) => console.log(e.target.childNodes);
+myBtn.appendChild(myBtnText);
+test_interface.appendChild(myBtn);
 
 // HOT MODULE REPLACEMENT CONFIG:
 if (module.hot) {
