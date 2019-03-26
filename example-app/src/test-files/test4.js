@@ -6,6 +6,22 @@ const updateVirtualDOM = function () {
 // ====== PLEASE REMOVE FUNCTION ABOVE ======
 
 
+// =====================================================================================
+// =================================  Helper Library  ==================================
+// =====================================================================================
+
+function longestArray(array1, ...rest) {
+    const _slice = Array.prototype.slice;
+    const args = _slice.call(arguments);
+    const result = args.reduce((max, arr) => {
+        if (arr.length > max.length) {
+            return arr;
+        } else { return max; }
+    });
+    return result;
+}
+
+
 // Accepts array with any contents. Finds adjacent elements of type 'string' and concatenates them into single elements.
 // Does not modify existing array. Ouputs a new array.
 function joinAdjacentStrings(inputArr = []) {
@@ -34,72 +50,35 @@ function joinAdjacentStrings(inputArr = []) {
     }
     return resultArr;
 }
+const extendObject = function (targetObj, newObj) {
+    // agnostic tool to map object properties onto another object
+    let keys = Object.keys(newObj), i = keys.length;
+    while (i--) {
+        targetObj[keys[i]] = newObj[keys[i]];
+    };
+    return targetObj;
+}
 
-function longestArray(array1, ...rest) {
-    const _slice = Array.prototype.slice;
-    const args = _slice.call(arguments);
-    const result = args.reduce((max, arr) => {
-        if (arr.length > max.length) {
-            return arr;
-        } else { return max; }
-    });
-    return result;
+const createClass = function (SuperClass, ClassConstructor, protoMethods, staticMethods, options = { bindMethods: [] }) {
+    ClassConstructor.prototype = Object.create(SuperClass.prototype);
+    ClassConstructor.prototype.constructor = ClassConstructor;
+    if (protoMethods) { extendObject(ClassConstructor.prototype, protoMethods); }
+    if (staticMethods) { extendObject(ClassConstructor, staticMethods); }
+    if (options.bindMethods.length > 0) {
+        options.bindMethods.forEach(function (method) {
+            ClassConstructor[method] = protoMethods[method].bind(ClassConstructor);
+        });
+    }
+    ClassConstructor.extend = function (ClassConstructor, protoMethods, staticMethods, options = { bindMethods: [] }) {
+        return createClass(this, ClassConstructor, protoMethods, staticMethods, options);
+    };
+    return ClassConstructor;
 }
 
 
-function normalizeChildren([newChildren, oldChildren]) {
-    if (!newChildren && !oldChildren) {
-        return [[], []];
-    } else if (!newChildren) {
-        return [[].fill(undefined, 0, oldChildren.length - 1), oldChildren];
-    } else if (!oldChildren) {
-        return [newChildren, [].fill(undefined, 0, oldChildren.length - 1)];
-    }
-
-    const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
-    const _newChildren = newChildren.map((x) => { return x; });
-    const _oldChildren1 = oldChildren.map((x) => { return x; });
-    const _oldChildren2 = [];
-    const _placeholder = { _placeholder: true }; // Will be replaced by child values or 'undefined' after matching
-
-    for (let i = 0; i < maxLength; i++) {
-        _oldChildren1[i]._fromIndex = i;
-        _oldChildren2[i] = _placeholder;
-        if (!_newChildren[i]) {
-            _newChildren[i] = undefined;
-        } else {
-            _newChildren[i]._currentIndex_ = i;
-        }
-    }
-    for (let i = 0; i < maxLength; i++) {
-        if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
-            for (let j = 0; j < _oldChildren1.length; j++) {
-                if (
-                    typeof _oldChildren1[j] === 'object' &&
-                    _oldChildren1[j].key &&
-                    _oldChildren1[j].key === _newChildren[i].key
-                ) {
-                    _oldChildren2[i] = null;
-                    _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
-                    break;
-                }
-            }
-        }
-    }
-    for (let i = 0; i < maxLength; i++) {
-        if (_oldChildren2[i] === _placeholder) {
-            _oldChildren2[i] = _oldChildren1.shift();
-        }
-        _oldChildren2[i]._toIndex_ = i;
-    }
-    while (_newChildren.length < maxLength) {
-        _newChildren.push(undefined);
-    }
-    console.log('NEW:', _newChildren);
-    console.log('OLD1:', _oldChildren1);
-    console.log('OLD2:', _oldChildren2);
-    return [_newChildren, _oldChildren2];
-}
+// =====================================================================================
+// ===============================  End Helper Library  ================================
+// =====================================================================================
 
 
 /* _customTypes is a global object with properties defined as specific object references. It is used for
@@ -156,103 +135,9 @@ const _customTypes = Object.create({}, {
     },
 });
 
-const extendObject = function (targetObj, newObj) {
-    // agnostic tool to map object properties onto another object
-    let keys = Object.keys(newObj), i = keys.length;
-    while (i--) {
-        targetObj[keys[i]] = newObj[keys[i]];
-    };
-    return targetObj;
-}
 
-const createClass = function (SuperClass, ClassConstructor, protoMethods, staticMethods, options = { bindMethods: [] }) {
-    ClassConstructor.prototype = Object.create(SuperClass.prototype);
-    ClassConstructor.prototype.constructor = ClassConstructor;
-    if (protoMethods) { extendObject(ClassConstructor.prototype, protoMethods); }
-    if (staticMethods) { extendObject(ClassConstructor, staticMethods); }
-    if (options.bindMethods.length > 0) {
-        options.bindMethods.forEach(function (method) {
-            ClassConstructor[method] = protoMethods[method].bind(ClassConstructor);
-        });
-    }
-    ClassConstructor.extend = function (ClassConstructor, protoMethods, staticMethods, options = { bindMethods: [] }) {
-        return createClass(this, ClassConstructor, protoMethods, staticMethods, options);
-    };
-    return ClassConstructor;
-}
 
-const MetaComponent = function (args = {
-    archetype: null,
-    inheritedProps: null,
-    inheritedChildren: null,
-    instance: null,
-    virtualElement: null,
-    $element: null,
-    metaComponentID: null,
-    __$type$__: null
-}) {
-    this.archetype = args.archetype;
-    this.inheritedProps = args.inheritedProps;
-    this.inheritedChildren = args.inheritedChildren;
-    this.instance = args.instance;
-    this.componentSubTree = args.componentSubTree;
-    this.$element = args.$element;
-    this.metaComponentID = ("" + Math.random()).slice(3);
-    this.__$type$__ = args.__$type$__;
-    this.name = this.archetype.name;
-    this.initialized = false;
-}
-MetaComponent.prototype = {
-    createInstance: function (props = {}) {
-        if (this.__$type$__ === _customTypes.ClassComponent) {
-            let instance = new this.archetype(props);
-            instance.instanceID = ("" + Math.random()).slice(3);
-            return instance;
-        } else if (this.__$type$__ === _customTypes.FunctionalComponent) {
-            throw new TypeError("Cannot create new instance of functional component:", this.archetype);
-        }
-    },
-    updateComponent: function (props = {}, children = []) {
-        // Updates the 'instance' property with new instance of user-defined component;
-        let _this = this;
-        let renderResult;
-        if (this.__$type$__ === _customTypes.FunctionalComponent) {
-            this.inheritedProps = props;
-            this.inheritedChildren = children;
-            this.instance = null;
-            renderResult = this.archetype(props);
-        } else if (this.__$type$__ === _customTypes.ClassComponent) {
-            this.inheritedProps = props
-            this.inheritedChildren = children;
-            this.instance = this.createInstance(props);
-            renderResult = this.instance.render(props);
-        } else throw new TypeError("MetaComponent.__$type$__ not defined");
-        if (renderResult === undefined) { throw new TypeError('renderResult is undefined') }
-        this.componentSubTree = renderResult;
-        // console.log(this.inheritedChildren);
-        if (this.componentSubTree.__$type$__ === _customTypes.VirtualTextNode) {
-            // Not sure if this check is needed, but leaving it just in case.
-        } else if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
-            for (let i = 0; i < this.inheritedChildren.length; i++) {
-                this.componentSubTree.children.push(this.inheritedChildren[i]);
-            }
-        } else if (
-            this.componentSubTree.__$type$__ === _customTypes.ClassComponent
-            || this.componentSubTree.__$type$__ === _customTypes.FunctionalComponent
-        ) {
-            for (let i = 0; i < this.inheritedChildren.length; i++) {
-                this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i]);
-            }
-        }
-        this.initialized = true;
-    },
-    renderComponent: function (props = {}) {
-        if (!this.componentSubTree) {
-            this.updateComponent(props);
-        }
-        return this.componentSubTree;
-    }
-}
+
 
 // ============================================================================
 const Component = function (props = {}) {
@@ -280,53 +165,248 @@ Component.prototype = {
         }
     }
 }
+
+
+
+const MetaComponent = function (args = {
+    archetype: null,
+    inheritedProps: null,
+    inheritedChildren: null,
+    instance: null,
+    key: null,
+    oldIndex: null,
+    newIndex: null,
+    componentSubTree: null,
+    $nodeRef: null,
+    __$type$__: null
+}) {
+    this.archetype = args.archetype;
+    this.inheritedProps = args.inheritedProps;
+    this.inheritedChildren = args.inheritedChildren;
+    this.instance = args.instance;
+    this.key = this.inheritedProps.key ? this.inheritedProps.key : null;
+    this.oldIndex = args.oldIndex;
+    this.newIndex = args.newIndex;
+    this.componentSubTree = args.componentSubTree;
+    this.$nodeRef = args.$nodeRef;
+    this.metaComponentID = ("" + Math.random()).slice(3);
+    this.__$type$__ = args.__$type$__;
+    this.name = this.archetype.name;
+    this.initialized = false;
+}
+MetaComponent.prototype = {
+    createInstance: function (props = {}) {
+        if (this.__$type$__ === _customTypes.ClassComponent) {
+            let instance = new this.archetype(props);
+            instance.instanceID = ("" + Math.random()).slice(3);
+            return instance;
+        } else if (this.__$type$__ === _customTypes.FunctionalComponent) {
+            throw new TypeError("Cannot create new instance of functional component:", this.archetype);
+        }
+    },
+    updateComponent: function (props = {}, children = []) {
+        // Updates the 'instance' property with new instance of user-defined component;
+        let renderResult;
+        if (this.__$type$__ === _customTypes.FunctionalComponent) {
+            this.inheritedProps = props;
+            this.inheritedChildren = children;
+            this.instance = null;
+            renderResult = this.archetype(props);
+        } else if (this.__$type$__ === _customTypes.ClassComponent) {
+            this.inheritedProps = props;
+            this.inheritedChildren = children;
+            this.instance = this.createInstance(props);
+            renderResult = this.instance.render(props);
+        } else throw new TypeError("MetaComponent.__$type$__ not defined");
+        if (renderResult === undefined) { throw new TypeError('renderResult is undefined') }
+        this.componentSubTree = renderResult;
+        this.componentSubTree.key = this.key;
+
+        if (this.componentSubTree.__$type$__ === _customTypes.VirtualTextNode) {
+            // Not sure if this is needed yet...
+        } else if (this.componentSubTree.__$type$__ === _customTypes.VirtualElement) {
+            for (let i = 0; i < this.inheritedChildren.length; i++) {
+                this.componentSubTree.children.push(this.inheritedChildren[i]);
+            }
+        } else if (
+            this.componentSubTree.__$type$__ === _customTypes.ClassComponent
+            || this.componentSubTree.__$type$__ === _customTypes.FunctionalComponent
+        ) {
+            for (let i = 0; i < this.inheritedChildren.length; i++) {
+                this.componentSubTree.inheritedChildren.push(this.inheritedChildren[i]);
+            }
+        }
+        this.initialized = true;
+    },
+    renderComponent: function (props = {}) {
+        if (!this.componentSubTree) {
+            this.updateComponent(props);
+        }
+        return this.componentSubTree;
+    }
+}
 // ============================================================================
 
 class VirtualTextNode {
-    constructor(textValue) {
-        this.type = "textNode";
-        this.textValue = textValue;
-        this.prevVirtualSibling = null;
-        this.nextVirtualSibling = null;
-        this.normalizedSuperstring = null;
-        this.nodeRef = null;
+    constructor(
+        args = {
+            textValue: "",
+            key: null,
+            $nodeRef: null,
+            oldIndex: null,
+            newIndex: null,
+        }
+    ) {
+        this.textValue = args.textValue;
+        this.key = args.key;
+        this.$nodeRef = args.$nodeRef;
+        this.oldIndex = args.oldIndex;
+        this.newIndex = args.newIndex;
         this.__$type$__ = _customTypes.VirtualTextNode;
     }
 }
-
+// creates a single VirtualTextNode from a string or array of strings
+function createVirtualTextNode(text = "" || [""], key = null, index) {
+    switch (typeof text) {
+        case "string":
+            return new VirtualTextNode({ textValue: text, key: key });
+            break;
+        case "object":
+            return new VirtualTextNode(text.join(""), key);
+            break;
+        default:
+            throw new TypeError("Argument 'text' must be String or Array.");
+    }
+}
 // ============================================================================
 
-const VirtualElement = function (type, props = {}, children = []) {
-    this.type = type;
-    this.props = props;
-    this.children = children;
-    this.$nodeRef = null;
-    if (this.props.key) {
-        this.key = this.props.key;
-    }
+const VirtualElement = function (args = {
+    type,
+    props: {},
+    children: [],
+    key: null,
+    $nodeRef: null,
+    oldIndex: null,
+    newIndex: null,
+    vParent: null
+}
+) {
+    this.type = args.type;
+    this.props = args.props;
+    this.children = args.children;
+    this.key = args.key;
+    this.$nodeRef = args.$nodeRef;
+    this.oldIndex = args.oldIndex;
+    this.newIndex = args.index ? index : null;
     this.__$type$__ = _customTypes.VirtualElement;
 }
 VirtualElement.prototype.constructor = VirtualElement;
 
 function createVirtualNode(type, props = {}, children = []) {
-    children = children.map((child) => {
-        if (typeof child === ("string" || "number" || "boolean")) { return new VirtualTextNode(child) }
-        else return child;
+    debugger;
+    let result;
+    children = children.map((child, index) => { // transform String-typed children into VirtualTextNode instances
+        if (typeof child === "string") {
+            child = new VirtualTextNode({
+                textValue: child,
+            });
+        }
+        return child;
     });
     if (typeof type === 'string') {
-        return new VirtualElement(type, props, children);
+        result = new VirtualElement({
+            type: type,
+            props: props,
+            children: children,
+            key: props.key ? props.key : null
+        });
     }
     else if (typeof type === "function") {
         if (type.prototype && type.prototype.__$type$__ && type.prototype.__$type$__ === _customTypes.ClassComponent) {
-            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.ClassComponent });
+            result = new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.ClassComponent });
         } else {
-            return new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.FunctionalComponent });
+            result = new MetaComponent({ archetype: type, inheritedProps: props, inheritedChildren: children, __$type$__: _customTypes.FunctionalComponent });
         }
     }
+    return result;
 }
 const $ = createVirtualNode;
 
 
+function normalizeChildren([newChildren, oldChildren]) {
+    debugger;
+    if (!newChildren && !oldChildren) {
+        return [[], []];
+    } else if (!newChildren) {
+        return [
+            Array(oldChildren.length).fill(undefined),
+            oldChildren.map((child, index) => {
+                child.oldIndex = index;
+                child.newIndex = index;
+                return child;
+            })
+        ];
+    } else if (!oldChildren) {
+        return [
+            newChildren.map((child, index) => {
+                child.oldIndex = index;
+                child.newIndex = index;
+                return child;
+            }),
+            Array(newChildren.length).fill(undefined)
+        ];
+    } else {
+        const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
+        const _newChildren = newChildren.map((x) => { return x; });
+        const _oldChildren1 = oldChildren.map((x) => { return x; });
+        const _oldChildren2 = [];
+        const _placeholder = { _placeholder: true }; // Will be replaced by child values or 'undefined' after matching
+
+        for (let i = 0; i < maxLength; i++) {
+            _oldChildren2[i] = _placeholder;
+            if (!_oldChildren1[i]) {
+                _oldChildren1[i] = undefined;
+            } else {
+                _oldChildren1[i].oldIndex = i;
+            }
+            if (!_newChildren[i]) {
+                _newChildren[i] = undefined;
+            } else {
+                _newChildren[i]._currentIndex = i;
+            }
+        }
+        for (let i = 0; i < maxLength; i++) {
+            if (typeof _newChildren[i] === 'object' && _newChildren[i].key) {
+                for (let j = 0; j < _oldChildren1.length; j++) {
+                    if (
+                        typeof _oldChildren1[j] === 'object' &&
+                        _oldChildren1[j].key &&
+                        _oldChildren1[j].key === _newChildren[i].key
+                    ) {
+                        _oldChildren2[i] = null;
+                        _oldChildren2[i] = _oldChildren1.splice(j, 1)[0];
+                        break;
+                    }
+                }
+            }
+        }
+        for (let i = 0; i < maxLength; i++) {
+            if (_oldChildren2[i] === _placeholder) {
+                _oldChildren2[i] = _oldChildren1.shift();
+            }
+            if (_oldChildren2[i]) { _oldChildren2[i].newIndex = i; }
+        }
+        while (_newChildren.length < maxLength) {
+            _newChildren.push(undefined);
+        }
+        console.log('NEW:', _newChildren);
+        console.log('OLD1:', _oldChildren1);
+        console.log('OLD2:', _oldChildren2);
+        return [_newChildren, _oldChildren2];
+
+    }
+
+}
 
 
 const propsHaveChanged = function (newProps, oldProps) {
@@ -353,100 +433,6 @@ const propsHaveChanged = function (newProps, oldProps) {
 
 
 
-// Special case of reconcileVirtualDOM, performed on initial render of application.
-// Omits comparison to previous virtual DOM object (since it doesn't exist yet). 
-function initializeVirtualDOM(rootComponent) {
-    let result;
-    result = initialWalk(rootComponent);
-
-    function initialWalk(vNode) {
-        // console.dir("~~~~~~~~ vNode ~~~~~~~~ \r\n", { vNode });
-        let target;
-        if (vNode === undefined) { console.log('!vNode'); return vNode; };
-        if (vNode === null) { console.log('vNode is null'); return vNode; };
-
-        if (!vNode.__$type$__) {
-            // console.log('__$type$__ false');
-            switch (typeof vNode) {
-                case 'object':
-                    // console.log("typeof vNode === 'object'", vNode);
-                    if (Array.isArray(vNode)) {
-                        // console.log("isArray === true");
-                        if (vNode.length > 0) {
-                            target = vNode.map(function (item) {
-                                return initialWalk(item);
-                            });
-                        } else target = [];
-                    } else {
-                        // console.log("isArray === false");
-                        target = {};
-                        const propKeys = Object.keys(vNode);
-                        for (let i = 0; i < propKeys.length; i++) {
-                            target[propKeys[i]] = vNode[propKeys[i]];
-                        }
-                    }
-                    break;
-                default:
-                    target = vNode;
-            }
-        } else {
-            // console.log('__$type$__ true');
-            switch (vNode.__$type$__) {
-                case _customTypes.VirtualElement:
-                    // console.log('Virtual Element', vNode);
-                    target = new VirtualElement(
-                        initialWalk(vNode.type), // 'type' property can contain components, so we need to walk the tree;
-                        initialWalk(vNode.props),
-                        initialWalk(vNode.children), // each array element parsed by the walk agorithm;
-                    );
-                    break;
-                case _customTypes.VirtualTextNode:
-                    break;
-                case _customTypes.ClassComponent:
-                    // console.log('Class Component', vNode);
-                    if (!vNode.componentSubTree) {
-                        // console.log('instance NULL');
-                        vNode.updateComponent(vNode.inheritedProps, vNode.inheritedChildren);
-                        // console.log('vNode.componentSubTree', vNode.componentSubTree);
-                        if (!vNode.componentSubTree) {
-                            throw new TypeError('vNode instance undefined');
-                        } else {
-                            target = vNode;
-                            target.componentSubTree = initialWalk(vNode.componentSubTree);
-                        }
-                    } else {
-                        target = vNode;
-                        target.componentSubTree = initialWalk(vNode.componentSubTree);
-                    }
-                    break;
-                case _customTypes.FunctionalComponent:
-                    // console.log('Functional Component', vNode);
-                    if (!vNode.componentSubTree) {
-                        vNode.updateComponent(vNode.inheritedProps, vNode.inheritedChildren);
-                        // console.log('vNode.componentSubTree', vNode.componentSubTree);
-                        if (!vNode.componentSubTree) {
-                            throw new TypeError('vNode instance undefined');
-                        } else {
-                            target = vNode;
-                            target.componentSubTree = initialWalk(vNode.componentSubTree);
-                        }
-                    } else {
-                        target = vNode;
-                        target.componentSubTree = initialWalk(vNode.componentSubTree);
-                    }
-                    break;
-                default:
-                    throw new TypeError("Invalid value for property '__$type$__' on component");
-            }
-        }
-        // console.log('Target:', target);
-        return target;
-    }
-    return result;
-}
-
-
-
 // ==================================================================================================================
 // ============================================  RECONCILE VIRTUAL DOM  =============================================
 // ==================================================================================================================
@@ -455,56 +441,13 @@ function initializeVirtualDOM(rootComponent) {
 
 function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
     let result;
-    // if (!oldVirtualDOM) {
-    //     console.log("!oldVirtualDOM");
-    //     result = (newVirtualDOM);
-    // } else {
-    //     result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
-    //     // console.log(result);
-    // }
+
+
     result = walkAndReconcile(newVirtualDOM, oldVirtualDOM);
+    
     function walkAndReconcile(newNode, oldNode) {
         let target;
-        if (!newNode.__$type$__) {
-            if (!oldNode || typeof newNode !== typeof oldNode) {
-                target = newNode;
-            }
-            switch (typeof newNode) {
-                case "string":
-                    throw new Error("This should not happen");
-                    break;
-                case "object":
-                    if (Array.isArray(newNode) === true) {
-                        console.log('--- non-component array ??');
-                        if (Array.isArray(oldNode) === false) { target = newNode; }
-                        else {
-                            target = [];
-                            const maxLength = (newNode.length >= oldNode.length ? newNode.length : oldNode.length);
-                            for (let i; i < maxLength; i++) {
-                                const item = walkAndReconcile(newNode[i], oldNode[i]);
-                                if (!!item) {
-                                    target.push(item);
-                                }
-                            }
-                        }
-                    } else {
-                        // regular objects:
-                        console.log('let me know if this happens');
-                        if (Array.isArray(oldNode) === true) { target = newNode; }
-                        target = {};
-                        const props = Object.assign({}, newNode, oldNode);
-                        const propKeys = Object.keys(props);
-                        for (let i = 0; i < propKeys.length; i++) {
-                            target[propKeys[i]] = walkAndReconcile(newNode[propKeys[i]], oldNode[propKeys[i]]);
-                        }
-                    }
-                    break;
-                default:
-                    if (newNode !== oldNode) {
-                        target = newNode;
-                    }
-            }
-        } else {
+        if (newNode) {
             switch (newNode.__$type$__) {
                 case _customTypes.VirtualElement:
                     target = reconcileVirtualElements(newNode, oldNode);
@@ -521,75 +464,67 @@ function reconcileVirtualDOM(newVirtualDOM, oldVirtualDOM) {
                 default:
                     throw new TypeError("Invalid value for property '__$type$__'");
             }
-
+        } else {
+            target = oldNode;
         }
-        // console.log('target:', target);
         return target;
 
         // ========================  Helper methods for Reconciler  ========================
 
         function reconcileChildren(newChildren, oldChildren) {
+            // debugger;
+            // let [_newChildren, _oldChildren] = [newChildren, oldChildren]; // $TESTING
+            let [_newChildren, _oldChildren] = normalizeChildren([newChildren, oldChildren]); // $TESTING
+
             let result;
-            if (!oldChildren) {
-                result = newChildren.map(function (child) {
+            if (!_oldChildren) {
+                result = _newChildren.map(function (child) {
                     return walkAndReconcile(child, undefined);
                 });
             } else {
                 // determine which node's 'children' array has the most children, so we can iterate through ALL of them.
-                const maxLength = (newChildren.length >= oldChildren.length ? newChildren.length : oldChildren.length);
+                const maxLength = (_newChildren.length >= _oldChildren.length ? _newChildren.length : _oldChildren.length);
                 result = [];
                 for (let i = 0; i < maxLength; i++) {
-                    const child = walkAndReconcile(newChildren[i], oldChildren[i]);
+                    const child = walkAndReconcile(_newChildren[i], _oldChildren[i]);
                     if (child) { // undefined children should not be pushed to the new children array.
                         result.push(child);
                     }
                 }
-
             }
             return result;
         }
         function reconcileVirtualElements(newNode, oldNode) {
-            // console.log(newNode, oldNode);
             // Input is expected to be VirtualElement instances for both arguments.
             let resultNode;
             if (
                 !oldNode
-                || typeof newNode !== typeof oldNode
-                || typeof newNode.type !== typeof oldNode.type
             ) {
                 resultNode = newNode;
                 resultNode.children = reconcileChildren(newNode.children, undefined);
             }
             else {
-                if (typeof newNode.type === 'string') {
-                    if (
-                        newNode.type !== oldNode.type
-                        || propsHaveChanged(newNode.props, oldNode.props) === true
-                    ) {
-                        resultNode = newNode;
-                        resultNode.children = reconcileChildren(newNode.children, oldNode.children);
-                    }
-                    else { resultNode = oldNode; }
+                if (
+                    newNode.type !== oldNode.type
+                    || propsHaveChanged(newNode.props, oldNode.props) === true
+                ) {
+                    resultNode = newNode;
+                    resultNode.children = reconcileChildren(newNode.children, oldNode.children);
                 }
-                else { // the node types look the same!
-                    // So let's check the props!
-                    if (propsHaveChanged(newNode.props, oldNode.props) === true) {
-                        resultNode = newNode;
-                        // resultNode.type = walkAndReconcile(newNode.type, oldNode.type);
-                        resultNode.children = reconcileChildren(newNode.children, oldNode.children);
-                    }
-                    // if props have changed, then we will use the new node, but we still need to compare children.
-                    else { resultNode = oldNode; }
-                }
+                else { resultNode = oldNode; }
             }
             return resultNode;
         }
         function reconcileVirtualTextNodes(newNode, oldNode) {
-            if (!newNode || typeof newNode !== typeof oldNode) {
+            debugger;
+            if (!oldNode ||
+                // typeof newNode !== typeof oldNode ||
+                newNode.__$type$__ !== oldNode.__$type$__
+            ) {
                 resultNode = newNode;
             }
             else {
-                if (oldNode.textValue && newNode.textValue === oldNode.textValue) {
+                if (newNode.textValue === oldNode.textValue) {
                     resultNode = oldNode;
                 } else {
                     resultNode = newNode;
@@ -649,13 +584,11 @@ This simplifies the DOM update function, since it won't have to check for compon
 function prepareRenderScheme(reconciledVdom) {
     let result;
     result = walkSubTree(reconciledVdom);
-
     function walkSubTree(vNode) {
         let target;
         if (typeof vNode === 'object') {
             switch (vNode.__$type$__) {
                 case _customTypes.VirtualElement:
-                    // console.log('VirtualElement');
                     target = vNode;
                     target.children = vNode.children.map(function (child) {
                         return walkSubTree(child);
@@ -665,11 +598,9 @@ function prepareRenderScheme(reconciledVdom) {
                     target = vNode;
                     break;
                 case _customTypes.FunctionalComponent:
-                    // console.log('FunctionalComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
                 case _customTypes.ClassComponent:
-                    // console.log('ClassComponent');
                     target = walkSubTree(vNode.componentSubTree);
                     break;
                 default:
@@ -724,7 +655,6 @@ function removeBooleanProp($target, propName) {
     $target[propName] = false;
 }
 function setProp($target, propName, value = null) {
-    // console.log('Target:\r\n', $target);
     if (isCustomProp(propName)) {
 
     } else if (propName === 'events') {
@@ -790,10 +720,10 @@ function updateProps($target, newProps, oldProps) {
 function createNode(vNode = null || '' || { type: undefined, props: {}, children: [], __$type$__ }) {
     let $node;
     if (!vNode) { // should catch null/undefined
-        throw new TypeError('Cannot create node with value === null || undefined');
+        throw new TypeError('Virtual Node Undefined');
     } else {
         switch (typeof vNode) {
-            case 'string':
+            case 'string' || 'number':
                 console.log('Let me know if this happens');
                 $node = document.createTextNode(vNode);
                 break;
@@ -836,60 +766,104 @@ function nodeHasChanged(vNode1, vNode2) {
 }
 
 function updateElement($parent, newNode, oldNode, index = 0) {
+    debugger;
     if (!oldNode) {
         if (!newNode) { console.log("Let me know if this happens"); }
         if (newNode) {
             let $node = createNode(newNode);
             if (typeof newNode === 'object' && newNode.__$type$__ === _customTypes.VirtualElement) {
                 updateProps($node, newNode.props, undefined);
-                for (let i = 0; i < newNode.children.length; i++) {
-                    updateElement($node, newNode.children[i], undefined, i);
-                }
+                updateChildren($node, newNode.children, undefined);
             }
             newNode.$nodeRef = $node;
+
             $parent.appendChild($node);
         }
     }
     else if (!newNode) {
         if (!oldNode) { console.log('Let me know if this happens'); }
-        console.log($parent.childNodes[index]);
-        console.log(oldNode);
-        $parent.removeChild($parent.childNodes[index]);
+        else {
+            console.log($parent);
+            $parent.removeChild($parent.childNodes[index]);
+        }
     }
     else if (newNode && oldNode) {
+        // [newNode.children, oldNode.children] = normalizeChildren([newNode.children, oldNode.children]); // $TESTING
         if (nodeHasChanged(newNode, oldNode) === true) {
             // if the node type has changed (or if a differente node is intended to be there), replace the node altogether.
             let $node = createNode(newNode);
-            // newNode.$nodeRef = $node;
+            newNode.$nodeRef = $node;
             updateProps($node, newNode.props, undefined);
-            for (let i = 0; i < newNode.children; i++) {
-                updateElement($node, newNode.children[i], oldNode.children[i], i);
-            }
+            updateChildren($node, newNode.children, undefined); // @@TESTING
             $parent.replaceChild($node, $parent.childNodes[index]);
         } else {
             // if the node type is the same, then we will just update the props and recursively evaluate children.
 
-            if (typeof newNode === 'object') {
-                let $node = $parent.childNodes[index];
-                newNode.$nodeRef = $node;
-                if (newNode.__$type$__ === _customTypes.VirtualElement) {
-                    updateProps($node, newNode.props, oldNode.props);
-                    const maxLength = (
-                        newNode.children.length > oldNode.children.length ?
-                            newNode.children.length : oldNode.children.length
-                    );
-                    for (let i = 0; i < maxLength; i++) {
-                        updateElement($node, newNode.children[i], oldNode.children[i], i);
-                    }
-                }
-                else if (newNode.__$type$__ === _customTypes.VirtualTextNode) {
-                    if (newNode.textValue !== oldNode.textValue) {
-                        $node.textContent = newNode.textValue;
-                    }
+            let $node = $parent.childNodes[index];
+            oldNode.$nodeRef = $node;
+            // newNode.$nodeRef = oldNode.$nodeRef;
+            if (newNode.__$type$__ === _customTypes.VirtualElement) {
+                updateProps($node, newNode.props, oldNode.props);
+                updateChildren($node, newNode.children, oldNode.children); // @@TESTING
+            }
+            else if (newNode.__$type$__ === _customTypes.VirtualTextNode) {
+                if (newNode.textValue !== oldNode.textValue) {
+                    $node.textContent = newNode.textValue;
                 }
             }
         }
     }
+
+    function updateChildren($parent, newChildren, oldChildren) {
+        /* Assuming both virtual children arrays are defined as arrays, and belong to the same
+        hypothetical virtual element */
+        debugger;
+        if (!newChildren && !oldChildren) {
+            return;
+        } else if (!newChildren) {
+            oldChildren.forEach((child, index) => {
+                // child.newIndex = index;
+                // child.oldIndex = index;
+                updateElement($parent, undefined, child, index);
+            });
+        } else if (!oldChildren) {
+            newChildren.forEach((child, index) => {
+                // child.newIndex = index;
+                // child.oldIndex = index;
+                updateElement($parent, child, undefined, index);
+            });
+
+        } else {
+            const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
+            // const $children = Array.prototype.map.call($parent.childNodes, (c) => { return c; });
+            const _newChildren = newChildren.map((x) => { return x; });
+            const _oldChildren = [];
+            // const indexMap = {};
+            const $fragment = document.createDocumentFragment();
+
+
+            oldChildren.forEach((child) => {
+                _oldChildren[child.newIndex] = child;
+            });
+            console.log("Old Children", oldChildren);
+            console.log("Reordered Children", _oldChildren);
+            _oldChildren.forEach((child) => {
+                $parent.removeChild(child.$nodeRef);
+                $fragment.appendChild(child.$nodeRef);
+            });
+
+            // for (let i = 0; i < maxLength; i++) {
+            //     indexMap[oldChildren[i].oldIndex] = oldChildren[i].newIndex;
+            // }
+
+            for (let i = 0; i < maxLength; i++) {
+                updateElement($fragment, newChildren[i], _oldChildren[i], i);
+            }
+            debugger;
+            $parent.appendChild($fragment);
+        }
+    }
+
 }
 
 
@@ -978,23 +952,6 @@ const AppHeader = createClass(
 AppHeader.prototype.subClassProtoMethod = function (things) {
     return things;
 }
-let NewClass1 = AppHeader.extend(
-    function NewClass1(props) {
-        AppHeader.apply(this, arguments);
-        this.props = props;
-        this.data = 'data';
-    }, {
-        myMethod2: function () {
-            return this.props;
-        }
-    }, {
-        staticMethod2: function () {
-            return this;
-        }
-    }, {
-        bindMethods: ['myMethod2']
-    }
-)
 class App1 extends Component {
     constructor(props) {
         super(props);
@@ -1003,15 +960,15 @@ class App1 extends Component {
     render() {
         return (
             $('div', { className: 'App1', style: { width: "50%", height: '300px' } }, [
-                $(AppHeader, { uniqueKey: 'disopafdis' }),
-                $(AppBody, { inheritedProp: 'INHERITED PROP' }, [
+                $(AppHeader, { key: 'AppHeader' }),
+                $(AppBody, { inheritedProp: 'INHERITED PROP', key: 'AppBody' }, [
                     $('div', { className: 'body-content' }, [
                         $('div', { className: 'row' }, ['This is row 1']),
                         $('div', { className: 'row' }, ['This is row 2']),
                         $('div', { className: 'row' }, ['This is row 2'])
                     ]),
                 ]),
-                $(AppFooter, { stuff: 'stuff' }, ['text'])
+                $(AppFooter, { stuff: 'stuff', key: "AppFooter" }, ['text'])
             ])
         );
     }
@@ -1024,8 +981,9 @@ class App2 extends Component {
     render() {
         return (
             $('div', { className: 'App2' }, [
-                $(AppHeader),
-                $(AppBody, { inheritedProp: 'PROP CHANGED' }, [
+                $("div", { style: { height: "20px", width: "200px" } }),
+                $(AppHeader, { key: "AppHeader" }),
+                $(AppBody, { inheritedProp: 'PROP CHANGED', key: "AppBody" }, [
                     $('div', { className: 'body-content' }, [
                         $('div', { className: 'row' }, ['This is row 4']),
                         $('div', { className: 'row' }, ['This is row 5']),
@@ -1033,13 +991,12 @@ class App2 extends Component {
                         $('div', { className: 'row' }, ['This is row 7']),
                     ]),
                 ]),
-                $(AppFooter, { stuff: 'stuff' }, ['text']),
+                $(AppFooter, { stuff: 'stuff', key: "AppFooter" }, ['text']),
                 $('div', { style: { height: "100px", width: "200px", border: "1px solid black" } }),
             ])
         );
     }
 }
-
 
 let rootComponent = $(App1);
 let ROOT = document.createElement('div');
