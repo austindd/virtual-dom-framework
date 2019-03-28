@@ -19,10 +19,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-
-
-
-
     class NodeTable {
         constructor(nodeArray) {
 
@@ -31,101 +27,113 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-
-
-
-
-
-
-
-
-
-
     const _DOMRenderStack = [];
 
-    const _DOMInstructions = {
-        create: {},
-        destroy: {},
-        replace: {
+    const domActions = {
+        createNode: {},
+        destroyNode: {},
+        replaceNode: {
             with: null
         },
-        move: {
-            from: null,
-            to: null
+        updateNode: {},
+        appendNodeTo: null,
+        moveNode: {
+            fromIndex: null,
+            toIndex: null
         },
-        update: {
-            addProps: [],
-            removeProps: [],
-            replaceProps: []
-        }
+
+
     }
 
-    function createChildMap(newChildren, oldChildren, callback = function callback(x) { return x }) {
+
+    class VNodePair {
+        constructor(newVN = null, oldVN = null, $nodeRef = null, key = null, actionList = null) {
+            this.newVN = newVN;
+            this.oldVN = oldVN;
+            this.$nodeRef = $nodeRef;
+            this.key = key;
+            this.actionList = actionList;
+            // this.__$type$__ = null // for now...
+        }
+
+    }
+
+
+
+    function createChildMap(newChildren = [], oldChildren = [], callback = function callback(x) { return x }) {
         debugger;
 
         const maxLength = newChildren.length > oldChildren.length ? newChildren.length : oldChildren.length;
         const _placeholder = { _placeholder: true };
+
         const childMap = {
             byKey: {},
             byNewChildren: [],
             byOldChildren: []
         }
 
-        const newChildStack = !newChildren ? [] : newChildren.filter((x, i) => {
-            x.index = i;
-            childMap.byNewChildren.push({ new: x || null, old: null });
-            if (x.key) {
-                if (!childMap.byKey[x.key]) { childMap.byKey[x.key] = { new: null, old: null }; }
-                childMap.byKey[x.key].new = x;
-                return false; // already sorted, no need to push to stack
-            } else {
-                return true; // push to stack
-            }
-        });
 
-        const oldChildStack = !oldChildren ? [] : oldChildren.filter((x, i) => {
-            x.index = i;
-            childMap.byOldChildren.push({ new: null, old: x || null });
-            if (x.key) {
-                if (!childMap.byKey[x.key]) { childMap.byKey[x.key] = { new: null, old: null }; }
-                childMap.byKey[x.key].old = x;
-                return false; // already sorted, no need to push to stack
-            } else {
-                return true; // push to stack
-            }
-        });
-
-        // iterating over the greater of the two children array inputs, handling other things as well.
         for (let i = 0; i < maxLength; i++) {
-            debugger;
-            if (!childMap.byOldChildren[i]) {
-                childMap.byOldChildren.push({ new: null, old: null });
-            }
-            if (!childMap.byNewChildren[i]) {
-                childMap.byNewChildren.push({ new: null, old: null });
+            const newChild = newChildren[i] || null;
+            const oldChild = oldChildren[i] || null;
+
+            if (newChild) {
+                newChild.index = i;
+                if (newChild.key) {
+                    if (!childMap.byKey[newChild.key]) {
+                        childMap.byKey[newChild.key] = {newVN: newChild, oldVN: null };
+                    } else {
+                        childMap.byKey[newChild.key].newVN = newChild;
+                    }
+                } else { }
+            } else { }
+
+            if (oldChild) {
+                oldChild.index = i;
+                if (oldChild.key) {
+                    if (!childMap.byKey[oldChild.key]) {
+                        childMap.byKey[oldChild.key] = {newVN: null, oldVN: oldChild };
+                    } else {
+                        childMap.byKey[oldChild.key].oldVN = oldChild;
+                    }
+                    
+                } else {  }
+            } else { }
+
+        }
+
+
+        for (let i = 0; i < maxLength; ++i) {
+            const newChild = newChildren[i] || null;
+            const oldChild = oldChildren[i] || null;
+
+            if (oldChild) {
+                if (oldChild.key) {
+                    if (childMap.byKey[oldChild.key].newVN) {
+                        // Matched!
+                        childMap.byOldChildren[i] = childMap.byKey[oldChild.key];
+                    } else {
+                        // Has a key but no match!
+                        childMap.byOldChildren[i] = {newVN: null, oldVN: oldChild};
+                    }
+                }
             }
 
-            // fill oldChildren
-            if (oldChildren[i] && oldChildren[i].key) {
-                // if this oldChild has a key, then assign the corresponding newChild (newChild can be null value).
-                childMap.byOldChildren[i].new = childMap.byKey[oldChildren[i].key].new;
-            }
-            else if (newChildStack[0]) {
-                // if no oldChild key for this index, then grab a newChild value from the newChildStack instead.
-                childMap.byNewChildren[i].old = newChildStack.shift();
-            }
+            if (newChild) {
+                if (newChild.key) {
+                    if (childMap.byKey[newChild.key].oldVN) {
+                        // Matched!
+                        childMap.byNewChildren[i] = childMap.byKey[newChild.key];
 
-
-            if (newChildren[i] && newChildren[i].key) {
-                // if this newChild has a key, then assign the corresponding oldChild (oldChild can be null value).
-                childMap.byNewChildren[i].old = childMap.byKey[newChildren[i].key].old;
-            }
-            else if (oldChildStack[0]) {
-                // if no newChild key for this index, then grab an oldChild value from the oldChildStack instead.
-                childMap.byNewChildren[i].old = oldChildStack.shift();
+                    } else {
+                        // Has a key but no match!
+                        childMap.byNewChildren[i] = {newVN: newChild, oldVN: null};
+                    }
+                }
             }
 
         }
+
 
         debugger;
 
@@ -136,15 +144,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+    function reconcileChildren(childMap = {}) {
+
+    }
+
+
 
 
     // Test Functions
     function test_createChildMap() {
         const oldChildren = [
-            { type: 'div', props: {}, children: [], id: 6 },
+            { type: 'div', props: {}, key: "Header", children: [], id: "Header" },
             { type: 'div', props: {}, key: 1, children: [], id: 1 },
-            { type: 'div', props: {}, key: 2, children: [], id: 2 },
-            { type: 'div', props: {}, key: 3, children: [], id: 3 },
+            // { type: 'div', props: {}, key: 2, children: [], id: 2 },
+            // { type: 'div', props: {}, key: 3, children: [], id: 3 },
             { type: 'div', props: {}, key: 4, children: [], id: 4 },
             { type: 'div', props: {}, key: 5, children: [], id: 5 },
 
@@ -165,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Test Interface:
 
-    let testBtn1 = createButton('Normalize Children',
+    let testBtn1 = createButton('createChildMap',
         test_createChildMap, document.body,
     );
 
