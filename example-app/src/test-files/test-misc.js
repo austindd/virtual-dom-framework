@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let btnText = document.createTextNode(text);
         btn.appendChild(btnText);
         Object.keys(styles).forEach((x) => {
-            btn[x] = styles[x];
+            btn.style[x] = styles[x];
         });
         btn.onclick = handler;
         if (parent) {
@@ -43,13 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-    class NodeTable {
-        constructor(nodeArray) {
-
-        }
-    }
-
-
 
     const _DOMRenderStack = [];
 
@@ -71,13 +64,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     class VNodePair {
-        constructor(newVN = null, oldVN = null, $nodeRef = null, key = null, action = null) {
+        constructor(newVN = null, oldVN = null, key = null, $nodeRef = null, action = null) {
             this.newVN = newVN;
             this.oldVN = oldVN;
-            this.$nodeRef = $nodeRef;
             this.key = key;
+            this.$nodeRef = $nodeRef;
             this.action = action;
-            // this.__$type$__ = null // for now...
+            this.completedAction = false;
+            this.__$type$__ = null // for now...
         }
 
     }
@@ -101,35 +95,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // End Setup...
 
-
         // Create childMap.byKeys object, which we will need to reference when sorting children later
         for (let i = 0; i < maxLength; i++) {
             const newChild = _newChildren[i];
             const oldChild = _oldChildren[i];
-
             if (newChild) {
                 newChild.index = i;
                 if (newChild.key) {
                     if (!childMap.byKey[newChild.key]) {
-                        childMap.byKey[newChild.key] = { newVN: newChild, oldVN: null };
+                        childMap.byKey[newChild.key] = new VNodePair(newChild, null, newChild.key);
                     } else {
                         childMap.byKey[newChild.key].newVN = newChild;
                     }
-                } else { }
-            } else { }
+                }
+            }
             if (oldChild) {
                 oldChild.index = i;
                 if (oldChild.key) {
                     if (!childMap.byKey[oldChild.key]) {
-                        childMap.byKey[oldChild.key] = { newVN: null, oldVN: oldChild };
+                        childMap.byKey[oldChild.key] = new VNodePair(null, oldChild, oldChild.key);
                     } else {
                         childMap.byKey[oldChild.key].oldVN = oldChild;
                     }
 
-                } else { }
-            } else { }
+                }
+            }
         }
-
+        debugger;
         // Fill childMap.byNewChildren and childMap.byOldChildren, based on key values.
         // If the child does not have a key, we will push that into two separate stacks for later use.
         for (let i = maxLength; i--;) {
@@ -138,11 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (oldChild) {
                 if (oldChild.key) {
-                    if (childMap.byKey[oldChild.key].newVN) {
+                    if (!!childMap.byKey[oldChild.key].newVN) {
                         // Matched!
                         childMap.byOldChildren[i] = childMap.byKey[oldChild.key];
                     } else {
-                        console.error('This should not happen');
                         // Has a key but no match!
                         childMap.byOldChildren[i] = childMap.byKey[oldChild.key];
                     }
@@ -158,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (newChild) {
                 if (newChild.key) {
-                    if (childMap.byKey[newChild.key].oldVN) {
+                    if (!!childMap.byKey[newChild.key].oldVN) {
                         // Matched!
                         childMap.byNewChildren[i] = childMap.byKey[newChild.key];
 
@@ -178,30 +169,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-
         for (let i = 0; i < maxLength; ++i) {
             if (childMap.byNewChildren[i] === _placeholder) {
-                childMap.byNewChildren[i] = {
-                    newVN: _newStack1.pop() || null,
-                    oldVN: _oldStack1.pop() || null
-                };
+                childMap.byNewChildren[i] = new VNodePair(
+                    _newStack1.pop() || null,
+                    _oldStack1.pop() || null,
+                    null
+                )
             }
             if (childMap.byOldChildren[i] === _placeholder) {
-                childMap.byOldChildren[i] = {
-                    newVN: _newStack2.pop() || null,
-                    oldVN: _oldStack2.pop() || null
-                };
+                childMap.byOldChildren[i] = new VNodePair(
+                    _newStack2.pop() || null,
+                    _oldStack2.pop() || null,
+                    null
+                )
             }
         }
 
-
         return callback(childMap);
-
     }
 
 
 
     function annotateChildMap(childMap = {}) {
+        let _test_
+        // -----------------
         const maxLength = childMap.byNewChildren.length > childMap.byOldChildren.length ?
             childMap.byNewChildren.length :
             childMap.byOldChildren.length;
@@ -209,8 +201,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         i = maxLength;
         while (i--) {
-            if (childMap.byOldChildren[i].oldVN !== null) {
-                if (childMap.byOldChildren[i].newVN !== null) {
+            if (!!childMap.byOldChildren[i].oldVN) {
+                if (!!childMap.byOldChildren[i].newVN) {
                     if (
                         childMap.byOldChildren[i].oldVN.type !== childMap.byOldChildren[i].newVN.type ||
                         propsHaveChanged(childMap.byOldChildren[i].newVN.props, childMap.byOldChildren[i].oldVN.props)
@@ -223,21 +215,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     childMap.byOldChildren[i].action = "destroy";
                 }
             } else {
-                if (childMap.byOldChildren[i].newVN !== null) {
-                    console.error("this probably won't happen??");
+                if (!!childMap.byOldChildren[i].newVN) {
+                    childMap.byOldChildren[i].action = "create";
                 }
             }
         }
 
         i = maxLength;
         while (i--) {
-            console.log(i);
-            if (childMap.byNewChildren[i].action) {
+            if (!!childMap.byNewChildren[i].action) {
                 /* If it's already been evaluated by the previous 'while' loop */
                 continue;
             }
-            if (childMap.byNewChildren[i].newVN !== null) {
-                if (childMap.byNewChildren[i].oldVN !== null) {
+            if (!!childMap.byNewChildren[i].newVN) {
+                if (!!childMap.byNewChildren[i].oldVN) {
                     if (
                         childMap.byNewChildren[i].oldVN.type !== childMap.byNewChildren[i].newVN.type ||
                         propsHaveChanged(childMap.byNewChildren[i].newVN.props, childMap.byNewChildren[i].oldVN.props)
@@ -250,47 +241,111 @@ document.addEventListener('DOMContentLoaded', function () {
                     childMap.byNewChildren[i].action = "create";
                 }
             }
+            else {
+                if (!!childMap.byNewChildren[i].oldVN) {
+                    childMap.byNewChildren[i].action = "destroy";
+                }
+            }
         }
         return childMap;
     }
 
 
-    function xyz(x) {
+    function reconcileChildMap(childMap = {}) {
+        let result = [];
+
+        const maxLength = childMap.byNewChildren.length > childMap.byOldChildren.length ?
+            childMap.byNewChildren.length :
+            childMap.byOldChildren.length;
+        let childPair;
+
+
+        for (let i = 0; i < maxLength; ++i) {
+            switch (childMap.byOldChildren[i].action) {
+                case "destroy":
+                    console.log("destroy");
+                    break;
+                case "update":
+                    console.log("update");
+                    break;
+                case "create":
+                    console.log("create");
+                    break;
+                case "maintain":
+                    console.log("maintain");
+                    break;
+                case (null || undefined):
+                    console.log('null || undefined');
+                    break;
+            }   
+        }
+
+        console.log("------------");
+        for (let i = 0; i < maxLength; ++i) {
+            switch (childMap.byNewChildren[i].action) {
+                case "destroy":
+                    console.log("destroy");
+                    break;
+                case "update":
+                    console.log("update");
+                    break;
+                case "create":
+                    console.log("create");
+                    break;
+                case "maintain":
+                    console.log("maintain");
+                    break;
+                case (null): case (undefined):
+                    console.log('null || undefined');
+                    break;
+            }   
+        }
+        return result;
+    }
+
+
+    // Test Data:
+    function testFunc1(x) {
         return x;
+    };
+
+    const testData_1 = {
+    
+        oldChildren: [
+            { type: 'div', props: { 0: 'zero' }, children: [], id: "Header" },
+            { type: 'div', props: {}, key: 1, children: [], id: 1 },
+            { type: 'div', props: { testFunc: testFunc1 }, key: 4, children: [], id: 4 },
+            { type: 'div', props: {}, key: 5, children: [], id: 5 },
+            { type: 'div', props: {}, children: [], id: "Footer" },
+            { type: 'div', props: {}, key: 2, children: [], id: 2 },
+            { type: 'div', props: {}, key: 3, children: [], id: 3 },
+    
+        ],
+        newChildren: [
+            { type: 'div', props: {}, children: [], id: "Header" },
+            { type: 'h1', props: {}, key: 1, children: [], id: 1 },
+            { type: 'div', props: {}, key: 2, children: [], id: 2 },
+            { type: 'div', props: { testFunc: testFunc1 }, key: 4, children: [], id: 4 },
+            { type: 'div', props: {}, key: 5, children: [], id: 5 },
+            // { type: 'div', props: {}, key: 3, children: [], id: 3 },
+            // { type: 'div', props: {}, children: [], id: "Footer" },
+    
+        ],
+    
     }
 
 
 
-    // Test Functions
+    // Test Functions:
     function test_createChildMap() {
-        const oldChildren = [
-            { type: 'div', props: { 0: 'zero' }, children: [], id: "Header" },
-            { type: 'div', props: {}, key: 1, children: [], id: 1 },
-            { type: 'div', props: { testFunc: xyz }, key: 4, children: [], id: 4 },
-            { type: 'div', props: {}, key: 5, children: [], id: 5 },
-            { type: 'div', props: {}, children: [], id: "Footer" },
-            { type: 'div', props: {}, key: 2, children: [], id: 2 },
-            { type: 'div', props: {}, key: 3, children: [], id: 3 },
-
-        ];
-        const newChildren = [
-            { type: 'div', props: {}, children: [], id: "Header" },
-            { type: 'h1', props: {}, key: 1, children: [], id: 1 },
-            { type: 'div', props: {}, key: 2, children: [], id: 2 },
-            { type: 'div', props: { testFunc: xyz }, key: 4, children: [], id: 4 },
-            { type: 'div', props: {}, key: 5, children: [], id: 5 },
-            { type: 'div', props: {}, key: 3, children: [], id: 3 },
-            { type: 'div', props: {}, children: [], id: "Footer" },
-
-        ]
-        let result = createChildMap(newChildren, oldChildren);
+        let result = createChildMap(testData_1.newChildren, testData_1.oldChildren);
         console.log(result);
         return result;
     }
 
     function test_annotateChildMap() {
         console.group('Start annotateChildMap()');
-        const childMap = test_createChildMap();
+        const childMap = createChildMap(testData_1.newChildren, testData_1.oldChildren);
 
         let result = annotateChildMap(childMap);
 
@@ -301,15 +356,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+    function test_reconcileChildMap() {
+        console.group("Start reconcileChildMap");
+        let childMap = annotateChildMap(createChildMap(testData_1.newChildren, testData_1.oldChildren));
+        let result = reconcileChildMap(childMap);
+        console.log(childMap);
+        console.log(result);
+        console.log("Done!")
+        console.groupEnd();
+        return result;
+    }
 
     // Test Interface:
-
     let testBtn1 = createButton('createChildMap',
-        test_createChildMap, document.body,
+        test_createChildMap, document.body, {
+            backgroundColor: "yellow"
+        }
     );
 
     let testBtn2 = createButton('annotateChildMap',
-        test_annotateChildMap, document.body,
+        test_annotateChildMap, document.body, {
+            backgroundColor: "lightblue"
+        }
+    );
+
+    let testBtn3 = createButton('reconcileChildMap',
+        test_reconcileChildMap, document.body, {
+            backgroundColor: "lightgreen"
+        }
+    );
+
+    let testBtn4 = createButton('reconcileChildMap',
+        test_reconcileChildMap, document.body, {
+            backgroundColor: "lightpink"
+        }
     );
 
 
