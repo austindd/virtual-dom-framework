@@ -15,6 +15,30 @@ document.addEventListener('DOMContentLoaded', function () {
         return btn;
     }
 
+    const propsHaveChanged = function (newProps, oldProps) {
+        if (!oldProps && newProps) return true;
+        if (oldProps && !newProps) return true;
+        if (oldProps && newProps) {
+            const props = Object.assign({}, newProps, oldProps);
+            let propKeys = Object.keys(props);
+            for (let i = 0; i < propKeys.length; i++) {
+                if (!newProps[propKeys[i]] || !oldProps[propKeys[i]]) return true; // should catch null/undefined
+                else if (typeof newProps[propKeys[i]] !== typeof oldProps[propKeys[i]]) return true;
+                else if (typeof newProps[propKeys[i]] === 'object') {
+                    if (propsHaveChanged(newProps[propKeys[i]], oldProps[propKeys[i]]) === true) {
+                        return true;
+                    };
+                }
+                else if (newProps[propKeys[i]] != oldProps[propKeys[i]]) {
+                    return true;
+                }
+            };
+        }
+        return false;
+    }
+
+
+
     // Experiments
 
 
@@ -47,12 +71,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     class VNodePair {
-        constructor(newVN = null, oldVN = null, $nodeRef = null, key = null, actionList = null) {
+        constructor(newVN = null, oldVN = null, $nodeRef = null, key = null, action = null) {
             this.newVN = newVN;
             this.oldVN = oldVN;
             this.$nodeRef = $nodeRef;
             this.key = key;
-            this.actionList = actionList;
+            this.action = action;
             // this.__$type$__ = null // for now...
         }
 
@@ -61,7 +85,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function createChildMap(newChildren = [], oldChildren = [], callback = function callback(x) { return x }) {
-        debugger;
         // Setup...
         const
             childMap = { byKey: {}, byNewChildren: [], byOldChildren: [] },
@@ -78,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // End Setup...
 
-        debugger;
 
         // Create childMap.byKeys object, which we will need to reference when sorting children later
         for (let i = 0; i < maxLength; i++) {
@@ -95,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 } else { }
             } else { }
-
             if (oldChild) {
                 oldChild.index = i;
                 if (oldChild.key) {
@@ -109,12 +130,9 @@ document.addEventListener('DOMContentLoaded', function () {
             } else { }
         }
 
-        debugger;
-
-
         // Fill childMap.byNewChildren and childMap.byOldChildren, based on key values.
         // If the child does not have a key, we will push that into two separate stacks for later use.
-        for (let i = maxLength - 1; i > -1; --i) {
+        for (let i = maxLength; i--;) {
             const newChild = _newChildren[i] || null;
             const oldChild = _oldChildren[i] || null;
 
@@ -160,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        debugger;
 
         for (let i = 0; i < maxLength; ++i) {
             if (childMap.byNewChildren[i] === _placeholder) {
@@ -168,13 +185,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     newVN: _newStack1.pop() || null,
                     oldVN: _oldStack1.pop() || null
                 };
-                if (childMap.byOldChildren[i] === _placeholder) {
-                    childMap.byOldChildren[i] = childMap.byNewChildren[i];
-                    _newStack2.pop(); // to keep track of available children independently
-                    _oldStack2.pop();
-                }
             }
-            else if (childMap.byOldChildren[i] === _placeholder) {
+            if (childMap.byOldChildren[i] === _placeholder) {
                 childMap.byOldChildren[i] = {
                     newVN: _newStack2.pop() || null,
                     oldVN: _oldStack2.pop() || null
@@ -182,46 +194,112 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        debugger;
 
         return callback(childMap);
 
     }
 
-    
-    
 
-    function reconcileChildren(childMap = {}) {
 
+    function annotateChildMap(childMap = {}) {
+        const maxLength = childMap.byNewChildren.length > childMap.byOldChildren.length ?
+            childMap.byNewChildren.length :
+            childMap.byOldChildren.length;
+        let i;
+
+        i = maxLength;
+        while (i--) {
+            if (childMap.byOldChildren[i].oldVN !== null) {
+                if (childMap.byOldChildren[i].newVN !== null) {
+                    if (
+                        childMap.byOldChildren[i].oldVN.type !== childMap.byOldChildren[i].newVN.type ||
+                        propsHaveChanged(childMap.byOldChildren[i].newVN.props, childMap.byOldChildren[i].oldVN.props)
+                    ) {
+                        childMap.byOldChildren[i].action = "update";
+                    } else {
+                        childMap.byOldChildren[i].action = "maintain";
+                    }
+                } else {
+                    childMap.byOldChildren[i].action = "destroy";
+                }
+            } else {
+                if (childMap.byOldChildren[i].newVN !== null) {
+                    console.error("this probably won't happen??");
+                }
+            }
+        }
+
+        i = maxLength;
+        while (i--) {
+            console.log(i);
+            if (childMap.byNewChildren[i].action) {
+                /* If it's already been evaluated by the previous 'while' loop */
+                continue;
+            }
+            if (childMap.byNewChildren[i].newVN !== null) {
+                if (childMap.byNewChildren[i].oldVN !== null) {
+                    if (
+                        childMap.byNewChildren[i].oldVN.type !== childMap.byNewChildren[i].newVN.type ||
+                        propsHaveChanged(childMap.byNewChildren[i].newVN.props, childMap.byNewChildren[i].oldVN.props)
+                    ) {
+                        childMap.byNewChildren[i].action = "update";
+                    } else {
+                        childMap.byNewChildren[i].action = "maintain";
+                    }
+                } else {
+                    childMap.byNewChildren[i].action = "create";
+                }
+            }
+        }
+        return childMap;
     }
 
+
+    function xyz(x) {
+        return x;
+    }
 
 
 
     // Test Functions
     function test_createChildMap() {
         const oldChildren = [
-            { type: 'div', props: {}, children: [], id: "Header" },
+            { type: 'div', props: { 0: 'zero' }, children: [], id: "Header" },
             { type: 'div', props: {}, key: 1, children: [], id: 1 },
-            // { type: 'div', props: {}, key: 2, children: [], id: 2 },
-            // { type: 'div', props: {}, key: 3, children: [], id: 3 },
-            { type: 'div', props: {}, key: 4, children: [], id: 4 },
+            { type: 'div', props: { testFunc: xyz }, key: 4, children: [], id: 4 },
             { type: 'div', props: {}, key: 5, children: [], id: 5 },
             { type: 'div', props: {}, children: [], id: "Footer" },
+            { type: 'div', props: {}, key: 2, children: [], id: 2 },
+            { type: 'div', props: {}, key: 3, children: [], id: 3 },
+
         ];
         const newChildren = [
             { type: 'div', props: {}, children: [], id: "Header" },
-            { type: 'div', props: {}, key: 1, children: [], id: 1 },
+            { type: 'h1', props: {}, key: 1, children: [], id: 1 },
             { type: 'div', props: {}, key: 2, children: [], id: 2 },
-            { type: 'div', props: {}, key: 4, children: [], id: 4 },
+            { type: 'div', props: { testFunc: xyz }, key: 4, children: [], id: 4 },
             { type: 'div', props: {}, key: 5, children: [], id: 5 },
             { type: 'div', props: {}, key: 3, children: [], id: 3 },
+            { type: 'div', props: {}, children: [], id: "Footer" },
+
         ]
         let result = createChildMap(newChildren, oldChildren);
         console.log(result);
         return result;
     }
 
+    function test_annotateChildMap() {
+        console.group('Start annotateChildMap()');
+        const childMap = test_createChildMap();
+
+        let result = annotateChildMap(childMap);
+
+        console.log(result);
+        console.log('Done!');
+        console.groupEnd;
+        return (result);
+
+    }
 
 
     // Test Interface:
@@ -230,6 +308,9 @@ document.addEventListener('DOMContentLoaded', function () {
         test_createChildMap, document.body,
     );
 
+    let testBtn2 = createButton('annotateChildMap',
+        test_annotateChildMap, document.body,
+    );
 
 
 });
